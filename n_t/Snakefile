@@ -1,0 +1,24 @@
+rule all:
+    input:
+        "G3OOA.trees",
+        "sp_out/G3OOA_estimated_Ne.txt",
+        "sp_out/G3OOA_Ne_est.png"
+
+rule simulation:
+    output:
+        "G3OOA.trees"
+    shell:
+        "python GutenkunstThreePopOutOfAfrica.py"
+
+rule stairwayplot:
+    input: 
+        rules.simulation.output
+    output:
+        "sp_out/G3OOA_estimated_Ne.txt",
+        "sp_out/G3OOA_Ne_est.png"
+    shell:
+        "python msp_to_stairwayplot.py {input} ~/popSim/analysis/n_t/sp_out 10 stairwayplot 10 123 1e-9 10 T"
+
+rule clean:
+    shell:
+        "rm -rf sp_out G3OOA.trees"

@@ -1,0 +1,4 @@
+msprime
+scikit-allel
+snakemake
+parallel
