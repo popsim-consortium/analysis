@@ -1,0 +1,26 @@
+rule all:
+    input:
+        directory("stairwayplot"),
+        "homo_sapiens_GutenkunstThreePop/sp_out/simulated_Ne_est.png"
+
+rule sp_download:
+    output:
+        directory("stairwayplot")
+    message:
+        "downloading stairwayplot"
+    shell:
+        "wget http://sesame.uoregon.edu/~adkern/stdpopsim/stairwayplot.tar.gz && \
+        tar zxf stairwayplot.tar.gz"
+
+rule homo_sapiens_Gutenkunst:
+    output:
+        "homo_sapiens_GutenkunstThreePop/sp_out/simulated_estimated_Ne.txt",
+        "homo_sapiens_GutenkunstThreePop/sp_out/simulated_Ne_est.png" 
+    message:
+        "running Homo sapiens Gutenkunst model"
+    shell:
+        "cd homo_sapiens_GutenkunstThreePop && snakemake"
+
+rule clean:
+    shell:
+        "rm -rf stairwayplot stairwayplot.tar.gz"

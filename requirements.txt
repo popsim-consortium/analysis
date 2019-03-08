@@ -1,0 +1,6 @@
+msprime
+scikit-allel
+snakemake
+setuptools
+matplotlib
+pandas
