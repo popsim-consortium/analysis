@@ -86,23 +86,23 @@ command1 = ("cd " + args.stairwayplot_dir + ";" +
             "::: $files")
 subprocess.run("echo $files", shell=True)
 subprocess.run(command1, shell=True)
-
+# print(command1)
 # moving output files...
 command2 = ("cd " + args.outdir + ";" + "mkdir thetas;" + "mv " +
             join(args.outdir, "infiles/") +
             "*.addTheta thetas;" + "rm -r infiles")
 subprocess.run(command2, shell=True)
-
+# print(command2)
 # get median and 95% CI for Ne~t
 command3 = ("cd " + args.stairwayplot_dir + ";" +
             "java Stairway_plot_output_summary_commandline "
             + join(args.outdir, "thetas") +
             " " + str(args.mutation_rate) + " " + str(args.generation_time) + " "
-            + join(args.outdir, splitext(basename(args.infile))[1]
+            + join(args.outdir, splitext(basename(args.infile))[0]
                    + "_estimated_Ne.txt") +
             ";" + "rm -r " + join(args.outdir, "thetas"))
 subprocess.run(command3, shell=True)
-
+# print(command3)
 if args.plot:
     from matplotlib import pyplot as plt
     import pandas

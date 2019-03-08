@@ -1,8 +1,7 @@
 rule all:
     input:
-        "G3OOA.trees",
-        "sp_out/G3OOA_estimated_Ne.txt",
-        "sp_out/G3OOA_Ne_est.png"
+        directory("stairwayplot"),
+        "homo_sapiens_GutenkunstThreePop/sp_out/simulated_Ne_est.png"
 
 rule sp_download:
     output:
@@ -13,21 +12,15 @@ rule sp_download:
         "wget http://sesame.uoregon.edu/~adkern/stdpopsim/stairwayplot.tar.gz && \
         tar zxf stairwayplot.tar.gz"
 
-rule simulation:
+rule homo_sapiens_Gutenkunst:
     output:
-        "G3OOA.trees"
+        "homo_sapiens_GutenkunstThreePop/sp_out/simulated_estimated_Ne.txt",
+        "homo_sapiens_GutenkunstThreePop/sp_out/simulated_Ne_est.png" 
+    message:
+        "running Homo sapiens Gutenkunst model"
     shell:
-        "python GutenkunstThreePopOutOfAfrica.py"
-
-rule stairwayplot_analysis:
-    input:
-        rules.simulation.output
-    output:
-        "sp_out/G3OOA_estimated_Ne.txt",
-        "sp_out/G3OOA_Ne_est.png"
-    shell:
-        "python msp_to_stairwayplot.py {input} ~/popSim/analysis/n_t/sp_out 10 stairwayplot 10 123 1e-9 10 T"
+        "cd homo_sapiens_GutenkunstThreePop && snakemake"
 
 rule clean:
     shell:
-        "rm -rf sp_out G3OOA.trees starwayplot stairwayplot.tar.gz"
+        "rm -rf stairwayplot stairwayplot.tar.gz"

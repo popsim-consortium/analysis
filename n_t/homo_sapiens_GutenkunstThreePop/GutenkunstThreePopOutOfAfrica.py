@@ -11,7 +11,7 @@ chrom = homo_sapiens.genome.chromosomes["chr22"]
 recomb_map = chrom.recombination_map()
 
 model = homo_sapiens.GutenkunstThreePopOutOfAfrica()
-model.debug()
+# model.debug()
 
 # Currently sampling 20 individuals from a single popn.
 tmp_samples = [
@@ -24,4 +24,4 @@ ts = msprime.simulate(
     mutation_rate=chrom.mean_mutation_rate,
     **model.asdict())
 # Hard coded output name. FIX ME
-ts.dump("G3OOA.trees")
+ts.dump("simulated.trees")
