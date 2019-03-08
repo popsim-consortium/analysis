@@ -4,14 +4,23 @@ rule all:
         "sp_out/G3OOA_estimated_Ne.txt",
         "sp_out/G3OOA_Ne_est.png"
 
+rule sp_download:
+    output:
+        directory("stairwayplot")
+    message:
+        "downloading stairwayplot"
+    shell:
+        "wget http://sesame.uoregon.edu/~adkern/stdpopsim/stairwayplot.tar.gz && \
+        tar zxf stairwayplot.tar.gz"
+
 rule simulation:
     output:
         "G3OOA.trees"
     shell:
         "python GutenkunstThreePopOutOfAfrica.py"
 
-rule stairwayplot:
-    input: 
+rule stairwayplot_analysis:
+    input:
         rules.simulation.output
     output:
         "sp_out/G3OOA_estimated_Ne.txt",
@@ -21,4 +30,4 @@ rule stairwayplot:
 
 rule clean:
     shell:
-        "rm -rf sp_out G3OOA.trees"
+        "rm -rf sp_out G3OOA.trees starwayplot stairwayplot.tar.gz"
