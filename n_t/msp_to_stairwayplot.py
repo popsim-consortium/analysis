@@ -47,7 +47,7 @@ sfs = sfs[1:len(sfs)]
 
 # tmp directory for input files
 command = ("cd " + args.outdir + ";" + "mkdir infiles")
-subprocess.run(command, shell=True)
+subprocess.run(command, shell=True, check=True)
 
 # write stairwayplot input
 out = open((join(args.outdir, "infiles", splitext(basename(args.infile))[0]) +
@@ -85,13 +85,13 @@ command1 = ("cd " + args.stairwayplot_dir + ";" +
             "Stairway_plot_theta_estimation02 {1} 1 5000 " +
             "::: $files")
 subprocess.run("echo $files", shell=True)
-subprocess.run(command1, shell=True)
+subprocess.run(command1, shell=True, check=True)
 # print(command1)
 # moving output files...
 command2 = ("cd " + args.outdir + ";" + "mkdir thetas;" + "mv " +
             join(args.outdir, "infiles/") +
             "*.addTheta thetas;" + "rm -r infiles")
-subprocess.run(command2, shell=True)
+subprocess.run(command2, shell=True, check=True)
 # print(command2)
 # get median and 95% CI for Ne~t
 command3 = ("cd " + args.stairwayplot_dir + ";" +
@@ -101,7 +101,7 @@ command3 = ("cd " + args.stairwayplot_dir + ";" +
             + join(args.outdir, splitext(basename(args.infile))[0]
                    + "_estimated_Ne.txt") +
             ";" + "rm -r " + join(args.outdir, "thetas"))
-subprocess.run(command3, shell=True)
+subprocess.run(command3, shell=True, check=True)
 # print(command3)
 if args.plot:
     from matplotlib import pyplot as plt
