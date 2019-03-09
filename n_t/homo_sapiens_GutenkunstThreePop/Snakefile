@@ -18,7 +18,7 @@ rule simulation:
     message:
         "doing simulation of GutenkunstThreePopOutOfAfrica model"
     shell:
-        "python GutenkunstThreePopOutOfAfrica.py"
+        "python3 GutenkunstThreePopOutOfAfrica.py"
 
 
 rule stairwayplot_analysis:
@@ -30,7 +30,7 @@ rule stairwayplot_analysis:
     message:
         "running stairwayplot"
     shell:
-        "python ../msp_to_stairwayplot.py {input} "+ cwd + "/sp_out 10 ../stairwayplot 10 123 " + str(chrom.mean_mutation_rate) + " 10 T"
+        "python3 ../msp_to_stairwayplot.py {input} "+ cwd + "/sp_out 10 ../stairwayplot 10 123 " + str(chrom.mean_mutation_rate) + " 10 T"
 
 rule clean:
     shell:
