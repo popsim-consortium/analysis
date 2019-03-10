@@ -1,26 +1,57 @@
+import pathlib
+
+import stairway
+import simulations
+import plots
+
+stairwayplot_code = "stairwayplot/swarmops.jar"
+
 rule all:
-    input:
-        directory("stairwayplot"),
-        "homo_sapiens_GutenkunstThreePop/sp_out/simulated_Ne_est.png"
+   input:
+       "homo_sapiens_Gutenkunst/estimated_Ne.png"
 
 rule sp_download:
     output:
-        directory("stairwayplot")
+        stairwayplot_code
     message:
         "downloading stairwayplot"
     shell:
         "wget http://sesame.uoregon.edu/~adkern/stdpopsim/stairwayplot.tar.gz && \
         tar zxf stairwayplot.tar.gz"
+   
 
-rule homo_sapiens_Gutenkunst:
+rule homo_sapiens_Gutenkunst_simulation:
     output:
-        "homo_sapiens_GutenkunstThreePop/sp_out/simulated_estimated_Ne.txt",
-        "homo_sapiens_GutenkunstThreePop/sp_out/simulated_Ne_est.png" 
-    message:
-        "running Homo sapiens Gutenkunst model"
-    shell:
-        "cd homo_sapiens_GutenkunstThreePop && snakemake"
+        "homo_sapiens_Gutenkunst/simulated.trees"
+    # TODO get simulation parameters from stdpopsim, so we can share them easily 
+    # with anlysis code below?
+    run: simulations.homo_sapiens_Gutenkunst(output[0])
+
+rule homo_sapiens_Gutenkunst_stairwayplot:
+    input:
+        "homo_sapiens_Gutenkunst/simulated.trees",
+        stairwayplot_code,
+    output:
+        "homo_sapiens_Gutenkunst/estimated_Ne.txt"
+    threads: 8
+    run: 
+        runner = stairway.StairwayPlotRunner(
+            workdir="homo_sapiens_Gutenkunst/stairwayplot",
+            stairway_dir=pathlib.Path.cwd() / "stairwayplot")
+        runner.ts_to_stairway(input[0], num_bootstraps=10)
+        runner.run_theta_estimation(max_workers=threads, show_progress=True)
+        # TODO get the rate here from stdpopsim. 
+        runner.run_summary(output[0], mutation_rate=1e-8, generation_time=10)
+
+rule homo_sapiens_Gutenkunst_stairwayplot_plot:
+    input:
+        "homo_sapiens_Gutenkunst/estimated_Ne.txt"
+    output:
+        "homo_sapiens_Gutenkunst/estimated_Ne.png"
+    run: plots.plot_stairway_Ne_estimate(input[0], output[0])
+
 
 rule clean:
     shell:
         "rm -rf stairwayplot stairwayplot.tar.gz"
+        "rm -fr homo_sapiens_Gutenkunst"
