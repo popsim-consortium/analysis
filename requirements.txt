@@ -4,3 +4,4 @@ snakemake
 setuptools
 matplotlib
 pandas
+tqdm
