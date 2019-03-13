@@ -3,12 +3,21 @@ import pathlib
 import stairway
 import simulations
 import plots
+import numpy as np
+import sys
 
 stairwayplot_code = "stairwayplot/swarmops.jar"
 
+seed = 12345
+np.random.seed(seed)
+
+reps = 2
+seed_array = np.random.random_integers(1,2**32,reps)
+chrm_list = ["chr22"]
 rule all:
    input:
-       "homo_sapiens_Gutenkunst/estimated_Ne.png"
+       expand("homo_sapiens_Gutenkunst/{seeds}.{chrms}.estimated_Ne.png",
+		seeds=seed_array, chrms=chrm_list)
 
 rule sp_download:
     output:
@@ -18,25 +27,24 @@ rule sp_download:
     shell:
         "wget http://sesame.uoregon.edu/~adkern/stdpopsim/stairwayplot.tar.gz && \
         tar zxf stairwayplot.tar.gz"
-   
 
 rule homo_sapiens_Gutenkunst_simulation:
     output:
-        "homo_sapiens_Gutenkunst/simulated.trees"
+        "homo_sapiens_Gutenkunst/{seeds}.{chrms}.trees"
     # TODO get simulation parameters from stdpopsim, so we can share them easily 
     # with anlysis code below?
-    run: simulations.homo_sapiens_Gutenkunst(output[0])
+    run: simulations.homo_sapiens_Gutenkunst(output[0], wildcards.seeds, wildcards.chrms)
 
 rule homo_sapiens_Gutenkunst_stairwayplot:
     input:
-        "homo_sapiens_Gutenkunst/simulated.trees",
+        "homo_sapiens_Gutenkunst/{seeds}.{chrms}.trees",
         stairwayplot_code,
     output:
-        "homo_sapiens_Gutenkunst/estimated_Ne.txt"
+        "homo_sapiens_Gutenkunst/{seeds}.{chrms}.estimated_Ne.txt"
     threads: 8
     run: 
         runner = stairway.StairwayPlotRunner(
-            workdir="homo_sapiens_Gutenkunst/stairwayplot",
+            workdir="homo_sapiens_Gutenkunst/stairwayplot/"+wildcards.seeds+"/",
             stairway_dir=pathlib.Path.cwd() / "stairwayplot")
         runner.ts_to_stairway(input[0], num_bootstraps=10)
         runner.run_theta_estimation(max_workers=threads, show_progress=True)
@@ -45,9 +53,9 @@ rule homo_sapiens_Gutenkunst_stairwayplot:
 
 rule homo_sapiens_Gutenkunst_stairwayplot_plot:
     input:
-        "homo_sapiens_Gutenkunst/estimated_Ne.txt"
+        "homo_sapiens_Gutenkunst/{seeds}.{chrms}.estimated_Ne.txt"
     output:
-        "homo_sapiens_Gutenkunst/estimated_Ne.png"
+        "homo_sapiens_Gutenkunst/{seeds}.{chrms}.estimated_Ne.png"
     run: plots.plot_stairway_Ne_estimate(input[0], output[0])
 
 
