@@ -4,10 +4,10 @@ Module to run the required simulations.
 
 import msprime
 from stdpopsim import homo_sapiens
+import sys
 
-
-def homo_sapiens_Gutenkunst(path, sample_size=20):
-    chrom = homo_sapiens.genome.chromosomes["chr22"]
+def homo_sapiens_Gutenkunst(path, seed, chrmStr, sample_size=20):
+    chrom = homo_sapiens.genome.chromosomes[chrmStr]
     recomb_map = chrom.recombination_map()
 
     model = homo_sapiens.GutenkunstThreePopOutOfAfrica()
@@ -19,5 +19,6 @@ def homo_sapiens_Gutenkunst(path, sample_size=20):
         samples=samples,
         recombination_map=chrom.recombination_map(),
         mutation_rate=chrom.mean_mutation_rate,
+        random_seed=seed,
         **model.asdict())
     ts.dump(path)
