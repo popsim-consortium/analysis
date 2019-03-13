@@ -26,6 +26,6 @@ University of Oregon SLURM cluster. At a minimum, you should
 edit the names of the partition to match those on your own HPC.
 The workflow can then be launched with the call
 
-`$ snakemake -j 999 --cluster-config cluster_talapas.json --cluster "sbatch -p {cluster.partition} -n {cluster.n}  -t {cluster.time}"
+`$ snakemake -j 999 --cluster-config cluster_talapas.json --cluster "sbatch -p {cluster.partition} -n {cluster.n}  -t {cluster.time}"`
 
 and jobs will be automatically farmed out to the cluster
