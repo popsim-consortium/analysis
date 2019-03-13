@@ -1,0 +1,14 @@
+{
+    "__default__" :
+    {
+        "time" : "00:10:00",
+        "n" : 1,
+        "partition" : "kern,preempt"
+    },
+    "homo_sapiens_Gutenkunst_stairwayplot" :
+    {
+        "time" : "00:10:00",
+	"n" : 8,
+	"partition" : "kern,preempt"
+    }
+}
