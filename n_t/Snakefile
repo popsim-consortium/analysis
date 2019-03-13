@@ -12,7 +12,7 @@ seed = 12345
 np.random.seed(seed)
 
 reps = 2
-seed_array = np.random.random_integers(1,2**32,reps)
+seed_array = np.random.random_integers(1,2**31,reps)
 chrm_list = ["chr22"]
 rule all:
    input:
