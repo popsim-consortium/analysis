@@ -17,7 +17,8 @@ chrm_list = ["chr22"]
 rule all:
    input:
        expand("homo_sapiens_Gutenkunst/{seeds}.{chrms}.estimated_Ne.png",
-		seeds=seed_array, chrms=chrm_list)
+		seeds=seed_array, chrms=chrm_list),
+       "homo_sapiens_Gutenkunst/estimated_Ne.png"
 
 rule sp_download:
     output:
@@ -58,6 +59,16 @@ rule homo_sapiens_Gutenkunst_stairwayplot_plot:
         "homo_sapiens_Gutenkunst/{seeds}.{chrms}.estimated_Ne.png"
     run: plots.plot_stairway_Ne_estimate(input[0], output[0])
 
+def ne_files(wildcards):
+    return(expand("homo_sapiens_Gutenkunst/{seeds}.{chrms}.estimated_Ne.txt",
+            seeds=seed_array, chrms=chrm_list))
+
+rule homo_sapiens_compound_stairwayplot:
+    input:
+        ne_files
+    output:
+        "homo_sapiens_Gutenkunst/estimated_Ne.png"
+    run: plots.plot_compound_Ne_estimate(input, output[0])
 
 rule clean:
     shell:
