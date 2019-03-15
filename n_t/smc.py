@@ -15,19 +15,18 @@ def write_smcpp_file(path):
     with open(path+".vcf", "w") as vcf_file:
         ts.write_vcf(vcf_file, 2)
     # index the vcf
-    cmd = ("bgzip " + path + ".vcf")
+    cmd = f"bgzip {path}.vcf"
     logging.info("Running:" + cmd)
     subprocess.run(cmd, shell=True, check=True)
-    vz_file = path + ".vcf.gz"
-    cmd = ("tabix " + vz_file)
+    vz_file = f"{path}.vcf.gz"
+    cmd = f"tabix {vz_file}"
     logging.info("Running:" + cmd)
     subprocess.run(cmd, shell=True, check=True)
     # run smc++ for vcf conversion
-    smc_file = path + ".smc.gz"
-    cmd = "smc++ vcf2smc " + vz_file + " " + \
-        smc_file + " 1 pop1:"
+    smc_file = f"{path}.smc.gz"
+    cmd = f"smc++ vcf2smc {vz_file} {smc_file} 1 pop1:"
     for n in range(ts.num_samples // 2):
-        cmd = cmd + "msp_" + str(n) + ","
+        cmd = cmd + f"msp_{n},"
     cmd = cmd[0:-1]
     logging.info("Running:" + cmd)
     subprocess.run(cmd, shell=True, check=True)

@@ -19,7 +19,7 @@ everything out using
 
 ### Dependencies
 Most dependencies can be loaded in using `pip install -r requirements.txt`. An exception
-to this is `smp++` which uses `conda` for its install. The simplest install should be 
+to this is `smc++` which uses `conda` for its install. The simplest install should be 
 achieved using
 
  `$ conda install -c terhorst -c bioconda smcpp`

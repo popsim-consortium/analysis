@@ -66,7 +66,7 @@ rule homo_sapiens_Gutenkunst_stairwayplot_plot:
     run: plots.plot_stairway_Ne_estimate(input[0], output[0])
 
 def ne_files(wildcards):
-    return expand("homo_sapiens_Gutenkunst/{seeds}.{chrms}.estimated_Ne.txt", \
+    return expand("homo_sapiens_Gutenkunst/{seeds}.{chrms}.estimated_Ne.txt",
             seeds=seed_array, chrms=chrm_list)
 
 rule homo_sapiens_compound_stairwayplot:
@@ -84,11 +84,13 @@ rule homo_sapiens_smcpp:
         "homo_sapiens_Gutenkunst/{seeds}.{chrms}.trees.smc.gz.final.json"
     threads: 8
     run:
+	# need to cd into subdir because smc++ crashes otherwise
         os.chdir("homo_sapiens_Gutenkunst")
         fn = os.path.basename(input[0])
         smc.write_smcpp_file(fn)
         # TODO get the rate here from stdpopsim
         smc.run_smcpp_estimate(fn + ".smc.gz", mutation_rate=1e-8, ncores=threads)
+	# need to cd out of subdir for snakemake sanity
         os.chdir("../")
 
 rule homo_sapiens_smcpp_plot:
