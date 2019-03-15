@@ -4,11 +4,10 @@ Module to run the required simulations.
 
 import msprime
 from stdpopsim import homo_sapiens
-import sys
+
 
 def homo_sapiens_Gutenkunst(path, seed, chrmStr, sample_size=20):
     chrom = homo_sapiens.genome.chromosomes[chrmStr]
-    recomb_map = chrom.recombination_map()
 
     model = homo_sapiens.GutenkunstThreePopOutOfAfrica()
     # model.debug()
