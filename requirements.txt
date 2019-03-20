@@ -1,4 +1,4 @@
-msprime
+msprime=0.7.0
 scikit-allel
 snakemake
 setuptools
@@ -6,3 +6,4 @@ matplotlib
 pandas
 tqdm
 seaborn
+smcpp

@@ -1,14 +1,16 @@
 import pathlib
+import sys
+
+import numpy as np
+import stdpopsim
 
 import stairway
 import smc
 import simulations
 import plots
-import numpy as np
-import sys
-import os
 
 stairwayplot_code = "stairwayplot/swarmops.jar"
+genetic_map_downloaded_flag= ".genetic_map_downloaded"
 
 seed = 12345
 np.random.seed(seed)
@@ -35,7 +37,21 @@ rule sp_download:
         "wget http://sesame.uoregon.edu/~adkern/stdpopsim/stairwayplot.tar.gz && \
         tar zxf stairwayplot.tar.gz"
 
+
+rule download_genetic_map:
+    output: genetic_map_downloaded_flag
+    message: "Downloading default genetic map"
+    run:
+        # We need to have this here to avoid several threads trying to download the 
+        # the genetic map into the cache at the same time.
+        genetic_map = stdpopsim.homo_sapiens.HapmapII_GRCh37()
+        if not genetic_map.is_cached():
+            genetic_map.download()
+        with open(output[0], "w") as f:
+            print("File to indicate genetic map has been downloaded", file=f)
+
 rule homo_sapiens_Gutenkunst_simulation:
+    input: genetic_map_downloaded_flag
     output:
         "homo_sapiens_Gutenkunst/{seeds}.{chrms}.trees"
     # TODO get simulation parameters from stdpopsim, so we can share them easily 
@@ -121,5 +137,5 @@ rule homo_sapiens_all_plot:
 
 rule clean:
     shell:
-        "rm -rf stairwayplot stairwayplot.tar.gz"
+        "rm -rf stairwayplot && rm stairwayplot.tar.gz"
         "rm -fr homo_sapiens_Gutenkunst"
