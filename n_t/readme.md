@@ -1,4 +1,4 @@
-# Readme for N(t) example
+#Readme for N(t) example
 This directory has a quick example of a workflow for estimating changing 
 population size over time from a simulated sample ($N(t)$) using
 stairwayplot. The basic workflow is organized using `snakemake`
@@ -17,16 +17,7 @@ everything out using
 
 `$ snakemake clean`
 
-### Dependencies
-Most dependencies can be loaded in using `pip install -r requirements.txt`. An exception
-to this is `smc++` which uses `conda` for its install. The simplest install should be 
-achieved using
-
- `$ conda install -c terhorst -c bioconda smcpp`
-
-Further details on `smc++` and its use can be found [here](https://github.com/popgenmethods/smcpp)
-
-### Cluster environments
+###Cluster environments
 Our workflow can also be run on a cluster. To do so requires
 the setup of a `.json` configuration file that lets `snakemake`
 know about your cluster. We have provided an example of 
@@ -38,6 +29,3 @@ The workflow can then be launched with the call
 `$ snakemake -j 999 --cluster-config cluster_talapas.json --cluster "sbatch -p {cluster.partition} -n {cluster.n}  -t {cluster.time}"`
 
 and jobs will be automatically farmed out to the cluster
-
-### Final output
-The current final output is a plot comparing stairwayplot and smc++ estimates of $N(t)$, i.e., `homo_sapiens_Gutenkunst/all_estimated_Ne.png`  
