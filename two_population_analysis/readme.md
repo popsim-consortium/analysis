@@ -1,0 +1,2 @@
+##Snakemake Cluster Command:
+###snakemake -j 28 --cluster-config cluster_hpc.json --cluster "qsub -N {cluster.N} -W {cluster.W} -q {cluster.q} -l {cluster.cpu_setup} -l {cluster.cput} -l {cluster.walltime} -j oe -V"

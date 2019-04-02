@@ -1,0 +1,73 @@
+import pathlib
+import sys
+
+import numpy as np
+import stdpopsim
+
+import dadi_utils
+
+genetic_map_downloaded_flag= ".genetic_map_downloaded"
+
+seed = 12345
+np.random.seed(seed)
+
+sim_reps = 2
+seed_array = np.random.random_integers(1,2**31,sim_reps)
+chrm_list = ["chr22"]
+demo_models_list = ['IM','split_mig']#,'IM_pre']
+fit_runs = 2
+dadi_seed_array = np.random.randint(0, 4294967295 + 1, fit_runs)
+
+rule all:
+   input:
+       expand("simulated_data/homo_sapiens_OutOfAfrica/msprime_joint_sfs_{sim_seeds}_{chrms}.fs",
+       sim_seeds=seed_array, chrms=chrm_list),
+       "results_comparison/homo_sapiens_OutOfAfrica/compare_dadi_to_msprime_joint_sfs_resid_range_50.pdf",
+       expand("results_fits/homo_sapiens_OutOfAfrica/{demo_models}/model_fit_{fit_seeds}.pdf",
+        demo_models=demo_models_list,fit_seeds=dadi_seed_array),
+       expand("results_fits/homo_sapiens_OutOfAfrica/{demo_models}/model_params_{fit_seeds}.txt",
+        demo_models=demo_models_list,fit_seeds=dadi_seed_array)
+
+rule download_genetic_map:
+    output: genetic_map_downloaded_flag
+    message: "Downloading default genetic map"
+    run:
+        # We need to have this here to avoid several threads trying to download the 
+        # the genetic map into the cache at the same time.
+        genetic_map = stdpopsim.homo_sapiens.HapmapII_GRCh37()
+        if not genetic_map.is_cached():
+            genetic_map.download()
+        with open(output[0], "w") as f:
+            print("File to indicate genetic map has been downloaded", file=f)
+
+rule simulate_to_dadi_sfs_OutOfAfrica:
+    output:
+        "simulated_data/homo_sapiens_OutOfAfrica/msprime_joint_sfs_{sim_seeds}_{chrms}.fs"
+    # TODO get simulation parameters from stdpopsim, so we can share them easily 
+    # with anlysis code below?
+    threads: 2
+    run: dadi_utils.msprime_to_dadi_simulation_OutOfAfrica(output[0], wildcards.sim_seeds, wildcards.chrms)
+
+sfs_files = expand("simulated_data/homo_sapiens_OutOfAfrica/msprime_joint_sfs_{sim_seeds}_{chrms}.fs",
+            sim_seeds=seed_array, chrms=chrm_list)
+
+rule compare_msprime_sfs_to_OutOfAfrica_model:
+    input:
+        sfs_files
+    output:
+        "results_comparison/homo_sapiens_OutOfAfrica/compare_dadi_to_msprime_joint_sfs_resid_range_50.pdf"
+    run: dadi_utils.compare_msprime_dadi_OutOfAfrica(sfs_files,output[0])
+
+rule fit_dadi_model_to_msprime_sfs:
+    input:
+        sfs_files
+    output:
+        "results_fits/homo_sapiens_OutOfAfrica/{demo_models}/model_fit_{fit_seeds}.pdf",
+        "results_fits/homo_sapiens_OutOfAfrica/{demo_models}/model_params_{fit_seeds}.txt"
+    threads: 4
+    run: dadi_utils.fit_dadi_model(sfs_files,output[0],output[1],wildcards.demo_models, wildcards.fit_seeds)
+
+
+rule clean:
+    shell:
+        "rm -rf simulated_data results_comparison results_fits"

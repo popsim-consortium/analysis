@@ -1,0 +1,29 @@
+{
+    "__default__" :
+    {
+        "N" : "sm.hpc.def",
+        "W" : "group_list=rgutenk",
+        "q" : "oc_high_pri",
+        "cput" : "cput=00:10:00",
+        "walltime" : "walltime=00:10:00",
+        "cpu_setup" : "select=1:ncpus=1:mem=6gb"
+    },
+    "simulate_to_dadi_sfs_OutOfAfrica" :
+    {
+        "N" : "sm.hpc.sim",
+        "W" : "group_list=rgutenk",
+        "q" : "oc_high_pri",
+        "cput" : "cput=00:10:00",
+        "walltime" : "walltime=00:10:00",
+        "cpu_setup" : "select=1:ncpus=1:mem=6gb"
+    },
+    "fit_dadi_model_to_msprime_sfs" :
+    {
+        "N" : "sm.hpc.fit",
+        "W" : "group_list=rgutenk",
+        "q" : "oc_high_pri",
+        "cput" : "cput=00:10:00",
+        "walltime" : "walltime=00:10:00",
+        "cpu_setup" : "select=1:ncpus=1:mem=6gb"
+    }
+}
