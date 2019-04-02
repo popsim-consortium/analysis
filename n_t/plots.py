@@ -1,13 +1,8 @@
 """
 Code for generating plots.
 """
-<<<<<<< HEAD
-
 import pandas
 import seaborn as sns
-=======
-import pandas
->>>>>>> 692e85d433139f47d64784fc3736fa5f38f41ab3
 import matplotlib
 from matplotlib import pyplot as plt
 # Force matplotlib to not use any Xwindows backend.
