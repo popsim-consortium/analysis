@@ -1,9 +1,13 @@
 """
 Code for generating plots.
 """
+<<<<<<< HEAD
 
 import pandas
 import seaborn as sns
+=======
+import pandas
+>>>>>>> 692e85d433139f47d64784fc3736fa5f38f41ab3
 import matplotlib
 from matplotlib import pyplot as plt
 # Force matplotlib to not use any Xwindows backend.
@@ -13,7 +17,9 @@ sns.set_style("darkgrid")
 
 
 def plot_stairway_Ne_estimate(infile, outfile):
-
+    """
+    figure of N(t) for single run of stairwayplot
+    """
     nt = pandas.read_csv(infile, sep="\t", skiprows=5)
     nt = nt[nt['year'] > 10]
     f, ax = plt.subplots(figsize=(7, 7))
@@ -25,14 +31,15 @@ def plot_stairway_Ne_estimate(infile, outfile):
 
 
 def plot_compound_Ne_estimate(infiles, outfile):
-
+    """
+    figure of N(t) for multiple runs of stairwayplot
+    """
     f, ax = plt.subplots(figsize=(7, 7))
     ax.set(xscale="log", yscale="log")
     for infile in infiles:
         nt = pandas.read_csv(infile, sep="\t", skiprows=5)
         nt = nt[nt['year'] > 10]
         ax.plot(nt['year'], nt['Ne_median'], c="red")
-
     f.savefig(outfile, bbox_inches='tight')
 
 
