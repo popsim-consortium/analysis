@@ -5,9 +5,9 @@ import numpy as np
 import stdpopsim
 
 import stairway
+import smc
 import simulations
 import plots
-
 
 stairwayplot_code = "stairwayplot/swarmops.jar"
 genetic_map_downloaded_flag= ".genetic_map_downloaded"
@@ -15,14 +15,18 @@ genetic_map_downloaded_flag= ".genetic_map_downloaded"
 seed = 12345
 np.random.seed(seed)
 
-reps = 2
+reps = 2 
 seed_array = np.random.random_integers(1,2**31,reps)
 chrm_list = ["chr22"]
 rule all:
    input:
        expand("homo_sapiens_Gutenkunst/{seeds}.{chrms}.estimated_Ne.png",
 		seeds=seed_array, chrms=chrm_list),
-       "homo_sapiens_Gutenkunst/estimated_Ne.png"
+       "homo_sapiens_Gutenkunst/estimated_Ne.png",
+        expand("homo_sapiens_Gutenkunst/{seeds}.{chrms}.trees.smc.gz.final.json.csv",
+		seeds=seed_array, chrms=chrm_list),
+	"homo_sapiens_Gutenkunst/smcpp_estimated_Ne.png",
+        "homo_sapiens_Gutenkunst/all_estimated_Ne.png"
 
 rule sp_download:
     output:
@@ -78,8 +82,8 @@ rule homo_sapiens_Gutenkunst_stairwayplot_plot:
     run: plots.plot_stairway_Ne_estimate(input[0], output[0])
 
 def ne_files(wildcards):
-    return(expand("homo_sapiens_Gutenkunst/{seeds}.{chrms}.estimated_Ne.txt",
-            seeds=seed_array, chrms=chrm_list))
+    return expand("homo_sapiens_Gutenkunst/{seeds}.{chrms}.estimated_Ne.txt",
+            seeds=seed_array, chrms=chrm_list)
 
 rule homo_sapiens_compound_stairwayplot:
     input:
@@ -88,7 +92,50 @@ rule homo_sapiens_compound_stairwayplot:
         "homo_sapiens_Gutenkunst/estimated_Ne.png"
     run: plots.plot_compound_Ne_estimate(input, output[0])
 
+
+rule homo_sapiens_smcpp:
+    input:
+        "homo_sapiens_Gutenkunst/{seeds}.{chrms}.trees"
+    output:
+        "homo_sapiens_Gutenkunst/{seeds}.{chrms}.trees.smc.gz.final.json"
+    threads: 8
+    run:
+	# need to cd into subdir because smc++ crashes otherwise
+        os.chdir("homo_sapiens_Gutenkunst")
+        fn = os.path.basename(input[0])
+        smc.write_smcpp_file(fn)
+        # TODO get the rate here from stdpopsim
+        smc.run_smcpp_estimate(fn + ".smc.gz", mutation_rate=1e-8, ncores=threads)
+	# need to cd out of subdir for snakemake sanity
+        os.chdir("../")
+
+rule homo_sapiens_smcpp_plot:
+    input: rules.homo_sapiens_smcpp.output
+    output: "homo_sapiens_Gutenkunst/{seeds}.{chrms}.trees.smc.gz.final.json.csv"
+    run:
+        # TODO get the genetion time from std source
+        smc.run_smcpp_plot(input[0], generation_time=10)
+
+def ne_files_smcpp(wildcards):
+    return expand("homo_sapiens_Gutenkunst/{seeds}.{chrms}.trees.smc.gz.final.json.csv", \
+            seeds=seed_array, chrms=chrm_list)
+
+rule homo_sapiens_compound_smcpp:
+    input:
+        ne_files_smcpp
+    output:
+        "homo_sapiens_Gutenkunst/smcpp_estimated_Ne.png"
+    run: plots.plot_compound_smcpp(input, output[0])
+
+rule homo_sapiens_all_plot:
+    input:
+        f1 = ne_files,
+        f2 = ne_files_smcpp,
+    output:
+        "homo_sapiens_Gutenkunst/all_estimated_Ne.png"
+    run: plots.plot_all_ne_estimates(input.f1, input.f2, output[0])
+
 rule clean:
     shell:
-        "rm -rf stairwayplot stairwayplot.tar.gz"
+        "rm -rf stairwayplot && rm stairwayplot.tar.gz"
         "rm -fr homo_sapiens_Gutenkunst"
