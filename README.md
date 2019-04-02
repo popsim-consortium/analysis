@@ -14,6 +14,7 @@ Next clone and install `stdpopsim`
 git clone https://github.com/popgensims/stdpopsim.git
 cd stdpopsim
 python setup.py install
+cd ..
 ```
 
 Now clone the analysis repo, and install its dependencies
