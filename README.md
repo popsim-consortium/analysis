@@ -26,4 +26,12 @@ for c in terhorst bioconda defaults conda-forge; do conda config --add channels 
 conda install --file requirements.txt --yes
 ````
 
+For using `msmc` we need to download and compile it to play nice
+with the conda environment that we have set up.
+```
+cd extern
+git clone https://github.com/stschiff/msmc.git
+cat msmc_makefile_stdpopsim_patch > msmc/Makefile && cd msmc && make
+```
+
 Further instructions can be currently found in each task directory
