@@ -32,6 +32,7 @@ with the conda environment that we have set up.
 cd extern
 git clone https://github.com/stschiff/msmc.git
 cat msmc_makefile_stdpopsim_patch > msmc/Makefile && cd msmc && make
+cd ../../
 ```
 
 Further instructions can be currently found in each task directory
