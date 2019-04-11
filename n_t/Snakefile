@@ -1,3 +1,15 @@
+
+"""
+Snakefile for running N_t analysis on stdpopsim.
+
+Simply running `snakemake` will run all analysis 
+defined by the arguments above.
+
+Currently, for each rep, for each chromome,
+This will run stairway plot, smc++, and msmc
+for estimates of N_t (Ne through time).
+"""
+
 import pathlib
 import sys
 
@@ -6,27 +18,53 @@ import stdpopsim
 
 import stairway
 import smc
+import msmc
 import simulations
 import plots
 
 stairwayplot_code = "stairwayplot/swarmops.jar"
 genetic_map_downloaded_flag= ".genetic_map_downloaded"
+msmc_exec = "../extern/msmc/build/msmc"
 
 seed = 12345
 np.random.seed(seed)
 
-reps = 2 
+num_samples = 8
+reps = 1
 seed_array = np.random.random_integers(1,2**31,reps)
 chrm_list = ["chr22"]
+
+
 rule all:
    input:
-       expand("homo_sapiens_Gutenkunst/{seeds}.{chrms}.estimated_Ne.png",
-		seeds=seed_array, chrms=chrm_list),
-       "homo_sapiens_Gutenkunst/estimated_Ne.png",
-        expand("homo_sapiens_Gutenkunst/{seeds}.{chrms}.trees.smc.gz.final.json.csv",
-		seeds=seed_array, chrms=chrm_list),
-	"homo_sapiens_Gutenkunst/smcpp_estimated_Ne.png",
         "homo_sapiens_Gutenkunst/all_estimated_Ne.png"
+
+
+rule download_genetic_map:
+    output: 
+        genetic_map_downloaded_flag
+    message: 
+        "Downloading default genetic map"
+    run:
+        # We need to have this here to avoid several threads trying to download the 
+        # the genetic map into the cache at the same time.
+        genetic_map = stdpopsim.homo_sapiens.HapmapII_GRCh37()
+        if not genetic_map.is_cached():
+            genetic_map.download()
+        with open(output[0], "w") as f:
+            print("File to indicate genetic map has been downloaded", file=f)
+
+
+rule homo_sapiens_Gutenkunst_simulation:
+    input: 
+        genetic_map_downloaded_flag
+    output:
+        "homo_sapiens_Gutenkunst/{seeds}.{chrms}.trees"
+    # TODO get simulation parameters from stdpopsim, so we can share them easily 
+    # with anlysis code below?
+    run: simulations.homo_sapiens_Gutenkunst(output[0], wildcards.seeds, \
+        wildcards.chrms, sample_size = num_samples)
+
 
 rule sp_download:
     output:
@@ -37,26 +75,6 @@ rule sp_download:
         "wget http://sesame.uoregon.edu/~adkern/stdpopsim/stairwayplot.tar.gz && \
         tar zxf stairwayplot.tar.gz"
 
-
-rule download_genetic_map:
-    output: genetic_map_downloaded_flag
-    message: "Downloading default genetic map"
-    run:
-        # We need to have this here to avoid several threads trying to download the 
-        # the genetic map into the cache at the same time.
-        genetic_map = stdpopsim.homo_sapiens.HapmapII_GRCh37()
-        if not genetic_map.is_cached():
-            genetic_map.download()
-        with open(output[0], "w") as f:
-            print("File to indicate genetic map has been downloaded", file=f)
-
-rule homo_sapiens_Gutenkunst_simulation:
-    input: genetic_map_downloaded_flag
-    output:
-        "homo_sapiens_Gutenkunst/{seeds}.{chrms}.trees"
-    # TODO get simulation parameters from stdpopsim, so we can share them easily 
-    # with anlysis code below?
-    run: simulations.homo_sapiens_Gutenkunst(output[0], wildcards.seeds, wildcards.chrms)
 
 rule homo_sapiens_Gutenkunst_stairwayplot:
     input:
@@ -74,6 +92,7 @@ rule homo_sapiens_Gutenkunst_stairwayplot:
         # TODO get the rate here from stdpopsim. 
         runner.run_summary(output[0], mutation_rate=1e-8, generation_time=10)
 
+
 rule homo_sapiens_Gutenkunst_stairwayplot_plot:
     input:
         "homo_sapiens_Gutenkunst/{seeds}.{chrms}.estimated_Ne.txt"
@@ -81,9 +100,11 @@ rule homo_sapiens_Gutenkunst_stairwayplot_plot:
         "homo_sapiens_Gutenkunst/{seeds}.{chrms}.estimated_Ne.png"
     run: plots.plot_stairway_Ne_estimate(input[0], output[0])
 
+
 def ne_files(wildcards):
     return expand("homo_sapiens_Gutenkunst/{seeds}.{chrms}.estimated_Ne.txt",
             seeds=seed_array, chrms=chrm_list)
+
 
 rule homo_sapiens_compound_stairwayplot:
     input:
@@ -100,42 +121,89 @@ rule homo_sapiens_smcpp:
         "homo_sapiens_Gutenkunst/{seeds}.{chrms}.trees.smc.gz.final.json"
     threads: 8
     run:
-	# need to cd into subdir because smc++ crashes otherwise
+	    # need to cd into subdir because smc++ crashes otherwise
         os.chdir("homo_sapiens_Gutenkunst")
         fn = os.path.basename(input[0])
         smc.write_smcpp_file(fn)
         # TODO get the rate here from stdpopsim
         smc.run_smcpp_estimate(fn + ".smc.gz", mutation_rate=1e-8, ncores=threads)
-	# need to cd out of subdir for snakemake sanity
+	    # need to cd out of subdir for snakemake sanity
         os.chdir("../")
 
+
 rule homo_sapiens_smcpp_plot:
-    input: rules.homo_sapiens_smcpp.output
-    output: "homo_sapiens_Gutenkunst/{seeds}.{chrms}.trees.smc.gz.final.json.csv"
+    input: 
+        rules.homo_sapiens_smcpp.output
+    output: 
+        "homo_sapiens_Gutenkunst/{seeds}.{chrms}.trees.smc.gz.final.json.csv"
     run:
         # TODO get the genetion time from std source
         smc.run_smcpp_plot(input[0], generation_time=10)
 
+
 def ne_files_smcpp(wildcards):
     return expand("homo_sapiens_Gutenkunst/{seeds}.{chrms}.trees.smc.gz.final.json.csv", \
             seeds=seed_array, chrms=chrm_list)
+
 
 rule homo_sapiens_compound_smcpp:
     input:
         ne_files_smcpp
     output:
         "homo_sapiens_Gutenkunst/smcpp_estimated_Ne.png"
-    run: plots.plot_compound_smcpp(input, output[0])
+    run: 
+        plots.plot_compound_smcpp(input, output[0])
+
+
+rule homo_sapiens_msmc:
+    input:
+        "homo_sapiens_Gutenkunst/{seeds}.{chrms}.trees"
+    output:
+        "homo_sapiens_Gutenkunst/{seeds}.{chrms}.trees.multihep.txt.final.txt"
+    threads: 8
+    run:
+        msmc.write_msmc_file(input[0])
+        msmc.run_msmc_estimate(input[0] + ".multihep.txt", msmc_exec, ncores=threads)
+
+
+rule convert_msmc:
+    input:
+        "homo_sapiens_Gutenkunst/{seeds}.{chrms}.trees.multihep.txt.final.txt"
+    output:
+        "homo_sapiens_Gutenkunst/{seeds}.{chrms}.trees.multihep.txt.final.txt.csv"
+    run:
+        msmc.convert_msmc_output(input[0], mutation_rate=1e-8, generation_time = 10)
+
+
+def ne_files_msmc(wildcards):
+    return expand("homo_sapiens_Gutenkunst/{seeds}.{chrms}.trees.multihep.txt.final.txt.csv", \
+            seeds=seed_array, chrms=chrm_list)
+
+
+rule homo_sapiens_compound_msmc:
+    input:
+        ne_files_msmc
+    output:
+        "homo_sapiens_Gutenkunst/msmc_estimated_Ne.png"
+    run: 
+        plots.plot_compound_msmc(input, output[0])
+
 
 rule homo_sapiens_all_plot:
     input:
         f1 = ne_files,
         f2 = ne_files_smcpp,
+        f3 = ne_files_msmc,
     output:
         "homo_sapiens_Gutenkunst/all_estimated_Ne.png"
-    run: plots.plot_all_ne_estimates(input.f1, input.f2, output[0])
+    run: 
+        plots.plot_all_ne_estimates(input.f1, input.f2, input.f3, output[0])
+
 
 rule clean:
     shell:
-        "rm -rf stairwayplot && rm stairwayplot.tar.gz"
-        "rm -fr homo_sapiens_Gutenkunst"
+        "rm -rf stairwayplot \
+            stairwayplot.tar.gz \
+            homo_sapiens_Gutenkunst \
+            .genetic_map_downloaded \
+            .snakemake"
