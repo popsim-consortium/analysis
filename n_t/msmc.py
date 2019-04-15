@@ -22,14 +22,16 @@ def write_msmc_file(path):
     for var in ts.variants():
         cur = int(var.site.position)
         if cur > prev:
-            string = chrom+'\t'+str(cur)+'\t'+str(cur-prev)+'\t'+''.join(map(str,var.genotypes))+"\n"
-            fi.write(string)
+            #string = chrom+'\t'+str(cur)+'\t'+ str(cur-prev)
+            #string_2 = '\t'+''.join(map(str,var.genotypes))+"\n"
+            geno = ''.join(map(str,var.genotypes))
+            fi.write(f"{chrom}\t{cur}\t{cur-prev}\t{geno}\n")
         prev = cur
     fi.close()
     return None
 
 
-def run_msmc_estimate(input_file, msmc_exec_loc, iterations=1, ncores=1):
+def run_msmc_estimate(input_files, output_file, msmc_exec_loc, iterations=1, ncores=1):
     """
     This is to run the msmc command and get estimates,
     It then will convert the scales times and pop sizes
@@ -38,7 +40,9 @@ def run_msmc_estimate(input_file, msmc_exec_loc, iterations=1, ncores=1):
     The final estimates will be written to 
     input_file.final.txt
     """
-    cmd = (f"{msmc_exec_loc} --fixedRecombination -o {input_file} -i {iterations} -t {ncores} {input_file}")
+    
+    cmd = (f"{msmc_exec_loc} --fixedRecombination -o \
+        {output_file} -i {iterations} -t {ncores} {input_files}")
     subprocess.run(cmd, shell=True, check=True)
     return None
 
