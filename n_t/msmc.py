@@ -4,9 +4,23 @@ Utilities for working with msmc
 import logging
 import subprocess
 import tskit
+import numpy as np
 
 
-def write_msmc_file(path):
+def prune_tree_sequence(tree_sequence_path, num_samples):
+    """
+    take in a tree sequence, and a number of samples
+    less than the number of samples in the tree, 
+    then simplify the tree sequence on that subset.
+    """
+    ts = tskit.load(tree_sequence_path)
+    if ts.num_samples > num_samples:
+        subset = np.random.choice(ts.samples(), num_samples, replace=False)
+        ts = ts.simplify(subset)
+    return ts
+
+# TODO delete after testing
+def write_msmc_file_deprecated(path, num_samples):
     """
     take one .trees file and write out 
     path.multihep.txt which acts as a single input to msmc
@@ -14,7 +28,7 @@ def write_msmc_file(path):
     This seems hacky atm, but let's getting working then hash out
     the details
     """
-    ts = tskit.load(path)
+    ts = prune_tree_sequence(path, num_samples)
     chrom = path.split(".")[1]
     output = path + ".multihep.txt"
     fi = open(output, "w")
@@ -22,13 +36,37 @@ def write_msmc_file(path):
     for var in ts.variants():
         cur = int(var.site.position)
         if cur > prev:
-            #string = chrom+'\t'+str(cur)+'\t'+ str(cur-prev)
-            #string_2 = '\t'+''.join(map(str,var.genotypes))+"\n"
             geno = ''.join(map(str,var.genotypes))
             fi.write(f"{chrom}\t{cur}\t{cur-prev}\t{geno}\n")
         prev = cur
     fi.close()
     return None
+
+def write_msmc_file(path, num_sampled_genomes_msmc):
+    """
+    take one .trees file and write out 
+    path.multihep.txt which acts as a single input to msmc
+
+    This seems hacky atm, but let's getting working then hash out
+    the details
+    """
+    for sample_size in num_sampled_genomes_msmc:
+        ts = prune_tree_sequence(path, sample_size)
+        sep = path.split(".")
+        chrom = sep[1]
+        sep.insert(1,str(sample_size))
+        output = ".".join(sep) + ".multihep.txt"
+        fi = open(output, "w")
+        prev = 0
+        for var in ts.variants():
+            cur = int(var.site.position)
+            if cur > prev:
+                geno = ''.join(map(str,var.genotypes))
+                fi.write(f"{chrom}\t{cur}\t{cur-prev}\t{geno}\n")
+            prev = cur
+        fi.close()
+    return None
+
 
 
 def run_msmc_estimate(input_files, output_file, msmc_exec_loc, iterations=1, ncores=1):

@@ -51,7 +51,7 @@ class StairwayPlotRunner(object):
         """
 
         
-        sfs_all = [[] for _ in range(num_bootstraps + 1)]
+        derived_counts_all = [[] for _ in range(num_bootstraps + 1)]
         total_length = 0 
         num_samples = 0
 
@@ -65,9 +65,12 @@ class StairwayPlotRunner(object):
             haps = ts.genotype_matrix()
             genotypes = allel.HaplotypeArray(haps).to_genotypes(ploidy=2)
             allele_counts = genotypes.count_alleles()
-            sfs = allel.sfs(allele_counts[:, 1])
-            sfs = sfs[1:len(sfs)]
-            sfs_all[0].extend(sfs)
+            derived_allele_counts = allele_counts[:, 1]
+            derived_counts_all[0].extend(derived_allele_counts)    
+        
+            #sfs = allel.sfs(allele_counts[:, 1])
+            #sfs = sfs[1:len(sfs)]
+            #sfs_all[0].extend(sfs)
 
             # write stairwayplot input
             # filename = self.workdir / "sfs_0.txt"
@@ -79,17 +82,21 @@ class StairwayPlotRunner(object):
                 nsites = np.shape(allele_counts)[0]
                 bootset = np.random.choice(np.arange(0, nsites, 1), nsites, replace=True)
                 bootac = allele_counts[bootset, :]
-                bootsfs = allel.sfs(bootac[:, 1])
-                bootsfs = bootsfs[1:len(bootsfs)]
-                sfs_all[j].extend(bootsfs)
+                der_bootac = bootac[:, 1]
+                derived_counts_all[j].extend(der_bootac)
+                #bootsfs = allel.sfs(bootac[:, 1])
+                #bootsfs = bootsfs[1:len(bootsfs)]
+                #sfs_all[j].extend(bootsfs)
+
                 #filename = self.workdir / "sfs_{}.txt".format(j)
                 #write_stairway_sfs(ts, bootsfs, filename)
                 #stairway_files.append(filename)
 
         stairway_files = []
-        for l in range(len(sfs_all)):
+        for l in range(len(derived_counts_all)):
+            sfs = allel.sfs(derived_counts_all[l])[1:]
             filename = self.workdir / "sfs_{}.txt".format(l)
-            write_stairway_sfs(total_length, num_samples, sfs_all[l], filename)
+            write_stairway_sfs(total_length, num_samples, sfs, filename)
             stairway_files.append(filename)
             
         return stairway_files
