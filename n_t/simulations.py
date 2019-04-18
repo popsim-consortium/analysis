@@ -6,17 +6,14 @@ import msprime
 from stdpopsim import homo_sapiens
 
 
-def homo_sapiens_Gutenkunst(path, seed, chrmStr, sample_size=20):
-    chrom = homo_sapiens.genome.chromosomes[chrmStr]
-    model = homo_sapiens.GutenkunstThreePopOutOfAfrica()
-    # model.debug()
-
-    # Currently sampling 20 individuals from a single popn.
+def simulate(out_path, species, model, genetic_map, seed, chrmStr, sample_size=20):
+    chrom = species.genome.chromosomes[chrmStr]
+    # TODO : Sample outside of population 0?
     samples = [msprime.Sample(population=0, time=0)] * sample_size
     ts = msprime.simulate(
         samples=samples,
-        recombination_map=chrom.recombination_map(),
+        recombination_map=chrom.recombination_map(genetic_map.name),
         mutation_rate=chrom.default_mutation_rate,
         random_seed=seed,
         **model.asdict())
-    ts.dump(path)
+    ts.dump(out_path)
