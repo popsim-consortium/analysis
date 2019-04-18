@@ -24,12 +24,13 @@ import smc
 import msmc
 import simulations
 import plots
+import smcsmc
+import smcsmc.popsim
 
 
 # ###############################################################################
 # KNOBS - 
 # ###############################################################################
-
 
 # A seed to replicate results
 # TODO mutation rates
@@ -49,11 +50,26 @@ num_sampled_genomes_per_replicate = config["num_sampled_genomes_per_replicate"]
 # Here is a list of sample sizes to run msmc on. 
 # Each element counts as its own analysis
 # so there will be "replicates" runs for each size
+#
+# and a similar setup for SMCSMC
 num_sampled_genomes_msmc = [int(x) for x in config["num_sampled_genomes_msmc"].split(",")]
+num_sampled_genomes_smcsmc = [int(x) for x in config["num_sampled_genomes_smcsmc"].split(",")]
 
 # The number of msmc Baumwelch(?) iterations to run,
 # typically 20
+#
+# And again, similar for SMCSMC. Number of stochastic EM iterations.
+# 15 is typical, but more is good too. Assess for convergence based on 
+# rainbow plots.
 num_msmc_iterations = config["num_msmc_iterations"]
+num_smcsmc_iterations = config["num_smcsmc_iterations"]
+
+# Number of particles to use for SMCSMC
+# 
+# A good starting point is 50k, and see if reducing 
+# significantly impacts the estimates that you are
+# recieveing. 
+num_smcsmc_particles = config["num_smcsmc_particles"]
 
 # The number of replicates of each analysis you would like to run
 replicates = config["replicates"]
@@ -300,6 +316,72 @@ rule compound_msmc:
 
 
 # ###############################################################################
+#  SMCSMC
+# ###############################################################################
+
+rule ts_to_seg:
+	input: rules.simulation.output
+	output: output_dir + "/Intermediate/{seeds}/{samps}.{chrms}.trees.seg"
+	run: smcsmc.utils.ts_to_seg(input[0], num_sampled_genomes_smcsmc)
+
+rule run_smcsmc:
+	input:	
+		expand(output_dir + "/Intermediate/{seeds}/{samps}.{chrms}.trees.seg",
+        		chrms=chrm_list, seeds=seed_array, samps=num_sampled_genomes_smcsmc)
+	output: 
+		output_dir + "/Intermediate/{seeds}/{samps}.run/result.out"
+	run: 
+		inputs = expand(output_dir+"/Intermediate/{seeds}/{samps}.{chrms}.trees.seg", 
+			seeds=wildcards.seeds, samps=wildcards.samps, chrms=chrm_list)
+		
+		input_file_string = " ".join(inputs)
+		args = {	
+			'EM': str(num_smcsmc_iterations),
+			'Np': str(num_smcsmc_particles),	
+			# Submission Parameters
+			'chunks': '100',	
+			'no_infer_recomb': '',
+			# Other inference parameters
+			'mu': str(species.genome.mean_mutation_rate),
+			'N0': '14312',
+			'rho': '3e-9',
+			'calibrate_lag': '1.0',
+			'tmax':	'3.5',
+			'alpha': '0',
+			'apf': '2',
+			'P': '133 133016 31*1',
+			'VB': '',
+			'nsam':	str(wildcards.samps),		
+			# This should be in the conda bin
+			'smcsmcpath': os.path.expandvars('${CONDA_PREFIX}/bin/smcsmc')
+		}
+		args['o'] = output_dir + f"/Intermediate/{wildcards.seeds}/{wildcards.samps}.run"
+		args['segs'] = input_file_string
+		
+		smcsmc.run_smcsmc(args)	
+
+rule convert_smcsmc:
+    input: rules.run_smcsmc.output
+    output: output_dir + "/Results/{seeds}/{samps}.run/results.out.csv"
+    run: smcsmc.popsim.convert_smcsmc_output(input[0], output[0], generation_time, num_smcsmc_iterations)
+
+
+def ne_files_smcsmc(wildcards):
+    return expand(output_dir + "/Results/{seeds}/{samps}.run/results.out.csv",
+            seeds=seed_array, samps=num_sampled_genomes_smcsmc)
+
+rule plot_by_sample:
+    input: expand(output_dir + "/Results/{seeds}/{{samps}}.run/results.out.csv", seeds=seed_array)
+    output: output_dir+"/Results/smcsmc_estimated_Ne_{samps}.png"
+    run: 
+    	plots.plot_compound_smcsmc_with_guide(input, output[0], 30, 1, nhaps ={wildcards.samps}, model = model)
+
+rule compound_smcsmc:
+    input: expand(output_dir+"/Results/smcsmc_estimated_Ne_{samps}.png", samps = num_sampled_genomes_smcsmc)
+
+
+
+# ###############################################################################
 # 
 # ###############################################################################
 
@@ -309,10 +391,11 @@ rule all_plot:
         f1 = ne_files,
         f2 = ne_files_smcpp,
         f3 = ne_files_msmc,
+	f4 = ne_files_smcsmc,
     output:
         output_dir + "/Results/all_estimated_Ne.pdf"
-    run:
-        plots.plot_all_ne_estimates(input.f1, input.f2, input.f3, output[0],
+    run: 
+        plots.plot_all_ne_estimates(input.f1, input.f2, input.f3, input.f4, output[0],
                     model=model, n_samp=num_sampled_genomes_per_replicate,
                     generation_time=generation_time, species=config["species"],
                     pop_id=population_id)
