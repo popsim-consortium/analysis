@@ -14,7 +14,7 @@ import numpy as np
 import tqdm
 
 
-def write_stairway_sfs(ts, sfs, path):
+def write_stairway_sfs(sequence_length, num_samples, sfs, path):
     """
     Writes the SFS to stairway plot format to the specified file.
     """
@@ -22,13 +22,13 @@ def write_stairway_sfs(ts, sfs, path):
     with open(path, "w") as out:
         # order is name,n_samples,sequence_length,lowest_sfs_bin,highest_sfs_bin
         print(
-            "msp", ts.num_samples, int(ts.sequence_length), 1,
-            ts.num_samples - 1, sep="\t", file=out)
+            "msp", num_samples, int(sequence_length), 1,
+            num_samples - 1, sep="\t", file=out)
         # TODO can we use numpy to do this more efficiently?
         for x in sfs:
             print(int(x), end="\t", file=out)
         print(file=out)
-
+    
 
 class StairwayPlotRunner(object):
     """
@@ -47,30 +47,40 @@ class StairwayPlotRunner(object):
         Converts the specified tskit tree sequence to text files used by
         stairway plot.
         """
-        ts = tskit.load(ts_path)
 
-        # count alleles, bootstrap over sites, return the SFS minus the 0% bin
-        haps = np.array(ts.genotype_matrix())
-        genotypes = allel.HaplotypeArray(haps).to_genotypes(ploidy=2)
-        allele_counts = genotypes.count_alleles()
-        sfs = allel.sfs(allele_counts[:, 1])
-        sfs = sfs[1:len(sfs)]
+        
+        derived_counts_all = [[] for _ in range(num_bootstraps + 1)]
+        total_length = 0 
+        num_samples = 0
 
-        # write stairwayplot input
-        filename = self.workdir / "sfs_0.txt"
-        write_stairway_sfs(ts, sfs, filename)
-        stairway_files = [filename]
+        for i,ts_p in enumerate(ts_path):        
+    
+            ts = tskit.load(ts_p)
+            total_length += ts.sequence_length
+            num_samples = ts.num_samples
 
-        # Write bootstrapped inputs
-        for j in range(1, num_bootstraps + 1):
-            nsites = np.shape(allele_counts)[0]
-            bootset = np.random.choice(np.arange(0, nsites, 1), nsites, replace=True)
-            bootac = allele_counts[bootset, :]
-            bootsfs = allel.sfs(bootac[:, 1])
-            bootsfs = bootsfs[1:len(bootsfs)]
-            filename = self.workdir / "sfs_{}.txt".format(j)
-            write_stairway_sfs(ts, bootsfs, filename)
+            # count alleles, bootstrap over sites, return the SFS minus the 0% bin
+            haps = ts.genotype_matrix()
+            genotypes = allel.HaplotypeArray(haps).to_genotypes(ploidy=2)
+            allele_counts = genotypes.count_alleles()
+            derived_allele_counts = allele_counts[:, 1]
+            derived_counts_all[0].extend(derived_allele_counts)    
+        
+            # Write bootstrapped inputs
+            for j in range(1, num_bootstraps + 1):
+                nsites = np.shape(allele_counts)[0]
+                bootset = np.random.choice(np.arange(0, nsites, 1), nsites, replace=True)
+                bootac = allele_counts[bootset, :]
+                der_bootac = bootac[:, 1]
+                derived_counts_all[j].extend(der_bootac)
+
+        stairway_files = []
+        for l in range(len(derived_counts_all)):
+            sfs = allel.sfs(derived_counts_all[l])[1:]
+            filename = self.workdir / "sfs_{}.txt".format(l)
+            write_stairway_sfs(total_length, num_samples, sfs, filename)
             stairway_files.append(filename)
+            
         return stairway_files
 
     def _run_theta_estimation(self, input_file):

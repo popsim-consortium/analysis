@@ -31,18 +31,25 @@ def write_smcpp_file(path):
     logging.info("Running:" + cmd)
     subprocess.run(cmd, shell=True, check=True)
 
-
+"""
 def run_smcpp_estimate(input_file, mutation_rate, ncores):
+    cmd = (
+        f"smc++ estimate "
+        f"{mutation_rate} {input_file} --base {input_file} --cores {ncores}")
+    logging.info("Running:" + cmd)
+    subprocess.run(cmd, shell=True, check=True)
+"""
+
+def run_smcpp_estimate(input_file, base, mutation_rate, ncores):
     """
     Runs smc++ estimate on the specified file, resulting in the output being written
     to the file input_file.final.jason".
     """
     cmd = (
         f"smc++ estimate "
-        f"{mutation_rate} {input_file} --base {input_file} --cores {ncores}")
+        f"--base {base} --cores {ncores} {mutation_rate} {input_file}")
     logging.info("Running:" + cmd)
     subprocess.run(cmd, shell=True, check=True)
-
 
 def run_smcpp_plot(input_file, generation_time):
     """
