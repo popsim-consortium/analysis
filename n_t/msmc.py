@@ -19,28 +19,6 @@ def prune_tree_sequence(tree_sequence_path, num_samples):
         ts = ts.simplify(subset)
     return ts
 
-# TODO delete after testing
-def write_msmc_file_deprecated(path, num_samples):
-    """
-    take one .trees file and write out 
-    path.multihep.txt which acts as a single input to msmc
-
-    This seems hacky atm, but let's getting working then hash out
-    the details
-    """
-    ts = prune_tree_sequence(path, num_samples)
-    chrom = path.split(".")[1]
-    output = path + ".multihep.txt"
-    fi = open(output, "w")
-    prev = 0
-    for var in ts.variants():
-        cur = int(var.site.position)
-        if cur > prev:
-            geno = ''.join(map(str,var.genotypes))
-            fi.write(f"{chrom}\t{cur}\t{cur-prev}\t{geno}\n")
-        prev = cur
-    fi.close()
-    return None
 
 def write_msmc_file(path, num_sampled_genomes_msmc):
     """

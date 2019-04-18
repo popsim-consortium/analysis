@@ -24,30 +24,13 @@ import msmc
 import simulations
 import plots
 
-"""
 seed = 12345
 np.random.seed(seed)
 
 num_sampled_genomes_per_replicate = 20
-num_sampled_genomes_msmc = 8
-replicates = 2
-
-chrm_list = [chrom for chrom in stdpopsim.homo_sapiens.genome.chromosomes][:3]
-
-seed_array = np.random.random_integers(1,2**31,replicates)
-
-genetic_map_downloaded_flag= ".genetic_map_downloaded"
-msmc_exec = "../extern/msmc/build/msmc"
-stairwayplot_code = "stairwayplot/swarmops.jar"
-"""
-
-seed = 12345
-np.random.seed(seed)
-
-num_sampled_genomes_per_replicate = 20
-num_sampled_genomes_msmc = [2,4]
-replicates = 2
-num_msmc_iterations = 5
+num_sampled_genomes_msmc = [4]
+replicates = 1
+num_msmc_iterations = 1
 
 chrm_list = [chrom for chrom in stdpopsim.homo_sapiens.genome.chromosomes][:2]
 
@@ -191,47 +174,6 @@ rule homo_sapiens_compound_smcpp:
 # ###############################################################################
 # MSMC
 # ###############################################################################
-
-"""
-rule homo_sapiens_ts_to_multihep:
-    input: rules.homo_sapiens_Gutenkunst_simulation.output
-    output: "homo_sapiens_Gutenkunst/{seeds}.{chrms}.trees.multihep.txt"
-    run: msmc.write_msmc_file(input[0], num_sampled_genomes_msmc)
-
-
-rule homo_sapiens_msmc:
-    input:
-        # TODO make this NOT dependent on all simulations.
-        # is there anyway to get access to wildcards.seeds from here? 
-        expand("homo_sapiens_Gutenkunst/{seeds}.{chrms}.trees.multihep.txt",
-            chrms=chrm_list, seeds=seed_array)
-    output: "homo_sapiens_Gutenkunst/{seeds}.trees.multihep.txt.final.txt"
-    threads: 40
-    run: 
-        inputs = expand("homo_sapiens_Gutenkunst/{seeds}.{chrms}.trees.multihep.txt",
-            seeds=wildcards.seeds, chrms=chrm_list)
-        input_file_string = " ".join(inputs)
-        output_file_string = f"homo_sapiens_Gutenkunst/{wildcards.seeds}.trees.multihep.txt"
-        msmc.run_msmc_estimate(input_file_string, output_file_string, msmc_exec,
-            iterations=20, ncores=threads)
-
-
-rule convert_msmc:
-    input: rules.homo_sapiens_msmc.output
-    output: "homo_sapiens_Gutenkunst/{seeds}.trees.multihep.txt.final.txt.csv"
-    run: msmc.convert_msmc_output(input[0], mutation_rate=1e-8, generation_time = 10)
-
-
-def ne_files_msmc(wildcards):
-    return expand("homo_sapiens_Gutenkunst/{seeds}.trees.multihep.txt.final.txt.csv",
-            seeds=seed_array)
-
-
-rule homo_sapiens_compound_msmc:
-    input: ne_files_msmc
-    output: "homo_sapiens_Gutenkunst/msmc_estimated_Ne.png"
-    run: plots.plot_compound_msmc(input, output[0])
-"""
 
 
 rule homo_sapiens_ts_to_multihep:

@@ -69,8 +69,9 @@ def plot_all_ne_estimates(sp_infiles, smcpp_infiles, msmc_infiles, outfile):
         line2, = ax.plot(nt['year'], nt['Ne_median'], c="blue", label='stairwayplot')
     # plot msmc estimates
     for infile in msmc_infiles:
+        samp = infile.split(".")[1]
         nt = pandas.read_csv(infile, usecols=[1, 2], skiprows=0)
-        line3, = ax.plot(nt['x'], nt['y'], c="purple", alpha=0.8, label='msmc')
+        line3, = ax.plot(nt['x'], nt['y'], c="purple", alpha=0.8, label='msmc '+samp+" samples")
     # TODO add a plot  of true history
 
     ax.set_xlabel("time (years)")

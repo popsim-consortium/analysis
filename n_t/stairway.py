@@ -29,8 +29,6 @@ def write_stairway_sfs(sequence_length, num_samples, sfs, path):
             print(int(x), end="\t", file=out)
         print(file=out)
     
-    #out = open(path,"w")
-    #out.write
 
 class StairwayPlotRunner(object):
     """
@@ -68,15 +66,6 @@ class StairwayPlotRunner(object):
             derived_allele_counts = allele_counts[:, 1]
             derived_counts_all[0].extend(derived_allele_counts)    
         
-            #sfs = allel.sfs(allele_counts[:, 1])
-            #sfs = sfs[1:len(sfs)]
-            #sfs_all[0].extend(sfs)
-
-            # write stairwayplot input
-            # filename = self.workdir / "sfs_0.txt"
-            # write_stairway_sfs(ts, sfs, filename)
-            # stairway_files = [filename]
-
             # Write bootstrapped inputs
             for j in range(1, num_bootstraps + 1):
                 nsites = np.shape(allele_counts)[0]
@@ -84,13 +73,6 @@ class StairwayPlotRunner(object):
                 bootac = allele_counts[bootset, :]
                 der_bootac = bootac[:, 1]
                 derived_counts_all[j].extend(der_bootac)
-                #bootsfs = allel.sfs(bootac[:, 1])
-                #bootsfs = bootsfs[1:len(bootsfs)]
-                #sfs_all[j].extend(bootsfs)
-
-                #filename = self.workdir / "sfs_{}.txt".format(j)
-                #write_stairway_sfs(ts, bootsfs, filename)
-                #stairway_files.append(filename)
 
         stairway_files = []
         for l in range(len(derived_counts_all)):
