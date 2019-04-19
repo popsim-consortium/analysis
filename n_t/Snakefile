@@ -126,7 +126,7 @@ rule sp_download:
             tar zxf stairwayplot.tar.gz"
 
 
-rule homo_sapiens_Gutenkunst_stairwayplot:
+rule run_stairwayplot:
     input:
         expand(output_dir + "/{seeds}/{chrms}.trees",
             chrms=chrm_list, seeds=seed_array),
@@ -258,13 +258,13 @@ rule compound_msmc:
 # 
 # ###############################################################################
 
-rule homo_sapiens_all_plot:
+rule all_plot:
     input:
         f1 = ne_files,
         f2 = ne_files_smcpp,
         f3 = ne_files_msmc,
     output:
-        "homo_sapiens_Gutenkunst/all_estimated_Ne.png"
+        output_dir + "/all_estimated_Ne.png"
     run: 
         plots.plot_all_ne_estimates(input.f1, input.f2, input.f3, output[0])
 
