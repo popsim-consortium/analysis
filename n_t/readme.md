@@ -32,7 +32,8 @@ There are four target rules that can be run with the given parameters:
 `all`.
 
 As of now, you can run any combination of `Knobs` found in `Snakefile`.
-these can adjust these parameters for an analysis run by simply setting the value 
+These parameters can be adjusted
+for an analysis run by simply setting the value 
 of the `python` variables at the top of the file. These variables include:
 
 `seed` : `<class 'int'>` 
