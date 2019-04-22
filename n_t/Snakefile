@@ -55,16 +55,16 @@ num_msmc_iterations = 20
 replicates = 2
 
 # Where you would like all output files from analysis to live
-output_dir = "homo_sapiens_Gutenkunst"
+output_dir = "drosophila_melanogaster"
 
 # The analysis species
-species = stdpopsim.homo_sapiens
+species = stdpopsim.drosophila_melanogaster
 
 # The specific model you would like to run
-model = species.GutenkunstThreePopOutOfAfrica()
+model = species.SheehanSongThreeEpoch()
 
 # The genetic map you would like to use.
-genetic_map = species.HapmapII_GRCh37()
+genetic_map = species.Comeron2012_dm6()
 
 # A list containing the names all simulated chromosomes you would 
 # like to include in each analysis
@@ -114,11 +114,11 @@ rule simulation:
             genetic_map = genetic_map, seed = wildcards.seeds, 
             chrmStr = wildcards.chrms, sample_size = num_sampled_genomes_per_replicate)
 
-# TODO MAKE RULE FOR CREATING DIRECTORY SRUCURE FOR ORGANIZING OUTPUT
 
 # ###############################################################################
 # STAIRWAYPLOT
 # ###############################################################################
+
 
 rule sp_download:
     output: 
@@ -258,9 +258,11 @@ rule compound_msmc:
     output: output_dir+"/msmc_estimated_Ne.png"
     run: plots.plot_compound_msmc(input, output[0])
 
+
 # ###############################################################################
 # 
 # ###############################################################################
+
 
 rule all_plot:
     input:
@@ -277,6 +279,6 @@ rule clean:
     shell:
         "rm -rf stairwayplot \
             stairwayplot.tar.gz \
-            homo_sapiens_Gutenkunst \
+            "+output_dir+" \
             .genetic_map_downloaded \
             .snakemake"
