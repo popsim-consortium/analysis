@@ -5,7 +5,7 @@ import logging
 import subprocess
 import tskit
 import numpy as np
-
+import os
 
 def prune_tree_sequence(tree_sequence_path, num_samples):
     """
@@ -30,10 +30,12 @@ def write_msmc_file(path, num_sampled_genomes_msmc):
     """
     for sample_size in num_sampled_genomes_msmc:
         ts = prune_tree_sequence(path, sample_size)
-        sep = path.split(".")
-        chrom = sep[1]
-        sep.insert(1,str(sample_size))
-        output = ".".join(sep) + ".multihep.txt"
+        dirr = os.path.dirname(path)
+        filen = os.path.basename(path)
+        sep = filen.split(".")
+        chrom = sep[0]
+        sep.insert(0,str(sample_size))
+        output = os.path.join(dirr,".".join(sep) + ".multihep.txt")
         fi = open(output, "w")
         prev = 0
         for var in ts.variants():
