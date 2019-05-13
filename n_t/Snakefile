@@ -34,10 +34,15 @@ import plots
 # TODO This heuristic may need a changed?
 # TODO Generation time
 # TODO mutation rates
-# TODO 
+# TODO add assertions for helpful error messages?
 
 seed = 12345
 np.random.seed(seed)
+
+# TODO This should end up being a list 
+# so that we may sample from multiple populations.
+# doing this may be a little tricky for msmc sub-sampling?
+population_id = 0
 
 # This is the number of samples to simulate for each analysis
 num_sampled_genomes_per_replicate = 20
@@ -45,7 +50,7 @@ num_sampled_genomes_per_replicate = 20
 # Here is a list of sample sizes to run msmc on. 
 # Each element counts as its own analysis
 # so there will be "replicates" runs for each size
-num_sampled_genomes_msmc = [8,4]
+num_sampled_genomes_msmc = [8,4,2]
 
 # The number of msmc Baumwelch(?) iterations to run,
 # typically 20
@@ -55,22 +60,22 @@ num_msmc_iterations = 20
 replicates = 2
 
 # Where you would like all output files from analysis to live
-output_dir = "drosophila_melanogaster"
+output_dir = "homo_sapiens_Gutenkunst2"
 
 # The analysis species
-species = stdpopsim.drosophila_melanogaster
+species = stdpopsim.homo_sapiens
 
 # The specific model you would like to run
-model = species.SheehanSongThreeEpoch()
+model = species.GutenkunstThreePopOutOfAfrica()
 
 # The genetic map you would like to use.
-genetic_map = species.Comeron2012_dm6()
+genetic_map = species.HapmapII_GRCh37()
 
 # A list containing the names all simulated chromosomes you would 
 # like to include in each analysis
 # TODO: Change this to list(species.genome.chromosomes)
-chrm_list = [chrom for chrom in species.genome.chromosomes][:2]
-
+chrm_list = [chrom for chrom in species.genome.chromosomes]
+    
 
 # ###############################################################################
 # GENERAL RULES & GLOBALS
@@ -84,8 +89,7 @@ stairwayplot_code = "stairwayplot/swarmops.jar"
 
 
 rule all:
-   input: output_dir + "/all_estimated_Ne.png"
-
+   input: output_dir + "/all_estimated_Ne.pdf"
 
 rule download_genetic_map:
     output: genetic_map_downloaded_flag
@@ -112,7 +116,8 @@ rule simulation:
         simulations.simulate(
             out_path = output[0], species = species, model = model,
             genetic_map = genetic_map, seed = wildcards.seeds, 
-            chrmStr = wildcards.chrms, sample_size = num_sampled_genomes_per_replicate)
+            chrmStr = wildcards.chrms, sample_size = num_sampled_genomes_per_replicate,
+            population = population_id)
 
 
 # ###############################################################################
@@ -159,7 +164,7 @@ rule compound_stairwayplot:
         ne_files
     output:
         output_dir + "/stairwayplot_estimated_Ne.png"
-    run: plots.plot_compound_Ne_estimate(input, output[0])
+    run: plots.plot_compound_Ne_estimate(model, input, output[0])
 
 
 # ###############################################################################
@@ -211,7 +216,7 @@ def ne_files_smcpp(wildcards):
 rule compound_smcpp:
     input: ne_files_smcpp
     output: output_dir + "/smcpp_estimated_Ne.png"
-    run: plots.plot_compound_smcpp(input, output[0])
+    run: plots.plot_compound_smcpp(model, input, output[0])
 
 
 # ###############################################################################
@@ -256,7 +261,7 @@ def ne_files_msmc(wildcards):
 rule compound_msmc:
     input: ne_files_msmc,
     output: output_dir+"/msmc_estimated_Ne.png"
-    run: plots.plot_compound_msmc(input, output[0])
+    run: plots.plot_compound_msmc(model, input, output[0])
 
 
 # ###############################################################################
@@ -270,9 +275,10 @@ rule all_plot:
         f2 = ne_files_smcpp,
         f3 = ne_files_msmc,
     output:
-        output_dir + "/all_estimated_Ne.png"
+        output_dir + "/all_estimated_Ne.pdf"
     run: 
-        plots.plot_all_ne_estimates(input.f1, input.f2, input.f3, output[0])
+        plots.plot_all_ne_estimates(model, population_id, 
+            input.f1, input.f2, input.f3, output[0])
 
 
 rule clean:
