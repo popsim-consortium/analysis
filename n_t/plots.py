@@ -7,6 +7,7 @@ import matplotlib
 import msprime
 import os
 from matplotlib import pyplot as plt
+import numpy as np
 # Force matplotlib to not use any Xwindows backend.
 matplotlib.use('Agg')
 
@@ -58,24 +59,22 @@ def plot_compound_msmc(infiles, outfile):
     f.savefig(outfile, bbox_inches='tight')
 
 
-def plot_all_ne_estimates(model, pop_id, sp_infiles, smcpp_infiles, msmc_infiles, outfile):
-
-    f, ax = plt.subplots(1,3,sharex=True,sharey=True,figsize=(14, 7))
-
-    num_steps=10000
-    end=10000
-    n_samp = 20
-
+def plot_all_ne_estimates(sp_infiles, smcpp_infiles, msmc_infiles, outfile,
+                            model, n_samp, generation_time, pop_id = 0, steps=None):
+    
     ddb = msprime.DemographyDebugger(**model.asdict())
-    steps, pop_size = ddb.population_size_trajectory(end=end,num_steps=num_steps)
+    if steps is None:
+        end_time = ddb.epochs[-2].end_time
+        steps = np.linspace(0,end_time,end_time+1)
+    pop_size = ddb.population_size_trajectory(steps=steps)
     pop_size = pop_size[:, pop_id]
     num_samples = [0 for _ in range(ddb.num_populations)]
     num_samples[pop_id] = n_samp
-    steps, coal_rate, P = ddb.coalescence_rate_trajectory(end=end,
-        num_samples=num_samples, num_steps=num_steps)
+    coal_rate, P = ddb.coalescence_rate_trajectory(steps=steps,
+        num_samples=num_samples)
+    steps = steps * generation_time
 
-    steps = steps*25
-
+    f, ax = plt.subplots(1,3,sharex=True,sharey=True,figsize=(14, 7))
     # plot smcpp estimates
     for infile in smcpp_infiles:
         nt = pandas.read_csv(infile, usecols=[1, 2], skiprows=0)

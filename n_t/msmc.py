@@ -60,7 +60,7 @@ def run_msmc_estimate(input_files, output_file, msmc_exec_loc, iterations=1, nco
     """
     
     cmd = (f"{msmc_exec_loc} --fixedRecombination -o \
-        {output_file} -i {iterations} -t {ncores} {input_files}")
+        {output_file} -i {iterations} {input_files}")
     subprocess.run(cmd, shell=True, check=True)
     return None
 
