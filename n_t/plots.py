@@ -64,43 +64,45 @@ def plot_all_ne_estimates(sp_infiles, smcpp_infiles, msmc_infiles, outfile,
     
     ddb = msprime.DemographyDebugger(**model.asdict())
     if steps is None:
-        end_time = ddb.epochs[-2].end_time
-        steps = np.linspace(0,end_time,end_time+1)
+        end_time = ddb.epochs[-2].end_time + 10000
+        steps = np.linspace(1,end_time,end_time+1)
     pop_size = ddb.population_size_trajectory(steps=steps)
     pop_size = pop_size[:, pop_id]
     num_samples = [0 for _ in range(ddb.num_populations)]
     num_samples[pop_id] = n_samp
     coal_rate, P = ddb.coalescence_rate_trajectory(steps=steps,
-        num_samples=num_samples)
+        num_samples=num_samples, double_step_validation=False)
     steps = steps * generation_time
 
     f, ax = plt.subplots(1,3,sharex=True,sharey=True,figsize=(14, 7))
     # plot smcpp estimates
     for infile in smcpp_infiles:
         nt = pandas.read_csv(infile, usecols=[1, 2], skiprows=0)
-        line1, = ax[0].plot(nt['x'], nt['y'], c="red", alpha=0.8, label='smc++')
-    ax[0].plot(steps, 1/(2*coal_rate), c="black", alpha=0.9, label='ground truth Ne')
-    ax[0].plot(steps, pop_size, c="#43464B", alpha=0.9, label='ground truth Ne')
+        line1, = ax[0].plot(nt['x'], nt['y'], alpha=0.6)
+    ax[0].plot(steps, 1/(2*coal_rate), c="black")
+    ax[0].plot(steps, pop_size, c="#43464B")
     ax[0].set_title("smc++")
 
     # plot stairwayplot estimates
     for infile in sp_infiles:
         nt = pandas.read_csv(infile, sep="\t", skiprows=5)
-        line2, = ax[1].plot(nt['year'], nt['Ne_median'], c="blue", label='stairwayplot')
-    ax[1].plot(steps, 1/(2*coal_rate), c="black", alpha=0.9, label='ground truth Ne')
-    ax[1].plot(steps, pop_size, c="#43464B", alpha=0.9, label='ground truth Ne')
+        line2, = ax[1].plot(nt['year'], nt['Ne_median'],alpha=0.6)
+    ax[1].plot(steps, 1/(2*coal_rate), c="black")
+    ax[1].plot(steps, pop_size, c="#43464B")
     ax[1].set_title("stairwayplot")
 
     # plot msmc estimates
+    msmc_sample_sizes = []
     for infile in msmc_infiles:
         fn = os.path.basename(infile)
         samp = fn.split(".")[0]
+        if samp not in msmc_sample_sizes:
+            msmc_sample_sizes.append(samp)
         nt = pandas.read_csv(infile, usecols=[1, 2], skiprows=0)
-        line3, = ax[2].plot(nt['x'], nt['y'], c="#0F45"+str(int(samp)*10), alpha=0.8, label='msmc '+samp+" samples")
-    ax[2].plot(steps, 1/(2*coal_rate), c="black", label='Coalescent rate derived Ne')
-    ax[2].plot(steps, pop_size, c="#43464B", label='Model defined Ne')
+        line3, = ax[2].plot(nt['x'], nt['y'], alpha=0.6)
+    ax[2].plot(steps, 1/(2*coal_rate), c="black")
+    ax[2].plot(steps, pop_size, c="#43464B")
     ax[2].set_title("msmc")
-    ax[2].legend(frameon=False)
 
     for i in range(3):
         ax[i].set(xscale="log", yscale="log")
