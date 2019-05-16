@@ -31,53 +31,55 @@ import plots
 
 
 # A seed to replicate results
-# TODO This heuristic may need a changed?
-# TODO Generation time
 # TODO mutation rates
-# TODO add assertions for helpful error messages?
 
-seed = 12345
-np.random.seed(seed)
+configfile: config["config"]+"/config.json"
+
+np.random.seed(config["seed"])
 
 # TODO This should end up being a list 
 # so that we may sample from multiple populations.
 # doing this may be a little tricky for msmc sub-sampling?
-population_id = 0
+population_id = config["population_id"]
 
 # This is the number of samples to simulate for each analysis
-num_sampled_genomes_per_replicate = 20
+num_sampled_genomes_per_replicate = config["num_sampled_genomes_per_replicate"]
 
 # Here is a list of sample sizes to run msmc on. 
 # Each element counts as its own analysis
 # so there will be "replicates" runs for each size
-num_sampled_genomes_msmc = [8,2]
+num_sampled_genomes_msmc = [int(x) for x in config["num_sampled_genomes_msmc"]]
 
 # The number of msmc Baumwelch(?) iterations to run,
 # typically 20
-num_msmc_iterations = 20
+num_msmc_iterations = config["num_msmc_iterations"]
 
 # The number of replicates of each analysis you would like to run
-replicates = 10
+replicates = config["replicates"]
 
 # Where you would like all output files from analysis to live
-output_dir = "homo_sapiens_Gutenkunst"
+output_dir = config["config"]
 
 # The analysis species
-species = stdpopsim.homo_sapiens
+species = getattr(stdpopsim,config["species"])
 
 # The specific model you would like to run
-model = species.GutenkunstThreePopOutOfAfrica()
+model_class = getattr(species,config["model"])
+model = model_class()
 
 # The genetic map you would like to use.
-genetic_map = species.HapmapII_GRCh37()
+genetic_map_class = getattr(species,config["genetic_map"])
+genetic_map = genetic_map_class()
 
 # A list containing the names all simulated chromosomes you would 
 # like to include in each analysis
 # TODO: Change this to list(species.genome.chromosomes)
 chrm_list = [chrom for chrom in species.genome.chromosomes]
+if(config["chrm_list"] != "all"):
+    chrm_list = chrm_list[:config["chrm_list"]]
 
 # For plotting
-generation_time = 25    
+generation_time = config["generation_time"]
 
 
 # ###############################################################################
@@ -92,7 +94,7 @@ stairwayplot_code = "stairwayplot/swarmops.jar"
 
 
 rule all:
-   input: output_dir + "/all_estimated_Ne.pdf"
+   input: output_dir + "/Results/all_estimated_Ne.pdf"
 
 rule download_genetic_map:
     output: genetic_map_downloaded_flag
@@ -112,7 +114,7 @@ rule simulation:
         genetic_map_downloaded_flag,
         # rules.top_directory.output,
     output:
-        output_dir + "/{seeds}/{chrms}.trees"
+        output_dir + "/Intermediate/{seeds}/{chrms}.trees"
     # TODO get simulation parameters from stdpopsim, so we can share them easily 
     # with anlysis code below?
     run: 
@@ -140,13 +142,13 @@ rule sp_download:
 
 rule run_stairwayplot:
     input:
-        expand(output_dir + "/{seeds}/{chrms}.trees",
+        expand(output_dir + "/Intermediate/{seeds}/{chrms}.trees",
             chrms=chrm_list, seeds=seed_array),
         stairwayplot_code,
-    output: output_dir + "/{seeds}/stairwayplot_estimated_Ne.txt"
+    output: output_dir + "/Results/{seeds}/stairwayplot_estimated_Ne.txt"
     threads: 20
     run: 
-        inputs = expand(output_dir + "/{seeds}/{chrms}.trees",
+        inputs = expand(output_dir + "/Intermediate/{seeds}/{chrms}.trees",
             seeds=wildcards.seeds, chrms=chrm_list)
         runner = stairway.StairwayPlotRunner(
             workdir= output_dir + "/stairwayplot/" + wildcards.seeds+"/",
@@ -154,11 +156,11 @@ rule run_stairwayplot:
         runner.ts_to_stairway(inputs, num_bootstraps=12)
         runner.run_theta_estimation(max_workers=threads, show_progress=True)
         # TODO get the rate here from stdpopsim. 
-        runner.run_summary(output, mutation_rate=1e-8, generation_time=10)
+        runner.run_summary(output, mutation_rate=1e-8, generation_time=generation_time)
 
 
 def ne_files(wildcards):
-    return expand(output_dir + "/{seeds}/stairwayplot_estimated_Ne.txt",
+    return expand(output_dir + "/Results/{seeds}/stairwayplot_estimated_Ne.txt",
             seeds=seed_array, chrms=chrm_list)
 
 
@@ -177,21 +179,21 @@ rule compound_stairwayplot:
 
 rule ts_to_smc:
     input:rules.simulation.output
-    output: output_dir + "/{seeds}/{chrms}.trees.smc.gz"
+    output: output_dir + "/Intermediate/{seeds}/{chrms}.trees.smc.gz"
     run: smc.write_smcpp_file(input[0])
 
 
 rule run_smcpp:
     input:
-        expand(output_dir+ "/{seeds}/{chrms}.trees.smc.gz", 
+        expand(output_dir+ "/Intermediate/{seeds}/{chrms}.trees.smc.gz", 
             chrms=chrm_list, seeds=seed_array)
     output:
-        output_dir + "/{seeds}/trees.smc.gz.final.json"
+        output_dir + "/Intermediate/{seeds}/trees.smc.gz.final.json"
     threads: 8
     run:
 	    # need to cd into subdir because smc++ crashes otherwise
         cur = os.getcwd()
-        os.chdir(f"{output_dir}/{wildcards.seeds}")
+        os.chdir(f"{output_dir}/Intermediate/{wildcards.seeds}")
         inputs = expand("{chrms}.trees.smc.gz", chrms=chrm_list)
         inputs = " ".join(inputs)
         base = f"trees.smc.gz"
@@ -205,20 +207,20 @@ rule smcpp_plot:
     input: 
         rules.run_smcpp.output
     output: 
-        output_dir + "/{seeds}/trees.smc.gz.final.json.csv"
+        output_dir + "/Results/{seeds}/trees.smc.gz.final.json.csv"
     run:
         # TODO get the genetion time from std source
-        smc.run_smcpp_plot(input[0], generation_time=10)
+        smc.run_smcpp_plot(input[0], output[0], generation_time=generation_time)
 
 
 def ne_files_smcpp(wildcards):
-    return expand(output_dir + "/{seeds}/trees.smc.gz.final.json.csv",
+    return expand(output_dir + "/Results/{seeds}/trees.smc.gz.final.json.csv",
             seeds=seed_array, chrms=chrm_list)
 
 
 rule compound_smcpp:
     input: ne_files_smcpp
-    output: output_dir + "/smcpp_estimated_Ne.png"
+    output: output_dir + "/Results/smcpp_estimated_Ne.png"
     run: plots.plot_compound_smcpp(model, input, output[0])
 
 
@@ -229,7 +231,7 @@ rule compound_smcpp:
 
 rule ts_to_multihep:
     input: rules.simulation.output
-    output: output_dir + "/{seeds}/{samps}.{chrms}.trees.multihep.txt"
+    output: output_dir + "/Intermediate/{seeds}/{samps}.{chrms}.trees.multihep.txt"
     run: msmc.write_msmc_file(input[0], num_sampled_genomes_msmc)
 
 
@@ -237,33 +239,33 @@ rule run_msmc:
     input:
         # TODO make this NOT dependent on all simulations.
         # is there anyway to get access to wildcards.seeds from here? 
-        expand(output_dir + "/{seeds}/{samps}.{chrms}.trees.multihep.txt",
+        expand(output_dir + "/Intermediate/{seeds}/{samps}.{chrms}.trees.multihep.txt",
             chrms=chrm_list, seeds=seed_array, samps=num_sampled_genomes_msmc)
-    output: output_dir + "/{seeds}/{samps}.trees.multihep.txt.final.txt"
+    output: output_dir + "/Intermediate/{seeds}/{samps}.trees.multihep.txt.final.txt"
     threads: 40
     run: 
-        inputs = expand(output_dir + "/{seeds}/{samps}.{chrms}.trees.multihep.txt",
+        inputs = expand(output_dir + "/Intermediate/{seeds}/{samps}.{chrms}.trees.multihep.txt",
             seeds=wildcards.seeds, samps=wildcards.samps, chrms=chrm_list)
         input_file_string = " ".join(inputs)
-        output_file_string = output_dir + f"/{wildcards.seeds}/{wildcards.samps}.trees.multihep.txt"
+        output_file_string = output_dir + f"/Intermediate/{wildcards.seeds}/{wildcards.samps}.trees.multihep.txt"
         msmc.run_msmc_estimate(input_file_string, output_file_string, msmc_exec,
             iterations=num_msmc_iterations, ncores=threads)
 
 
 rule convert_msmc:
     input: rules.run_msmc.output
-    output: output_dir + "/{seeds}/{samps}.trees.multihep.txt.final.txt.csv"
-    run: msmc.convert_msmc_output(input[0], mutation_rate=1e-8, generation_time = 10)
+    output: output_dir + "/Results/{seeds}/{samps}.trees.multihep.txt.final.txt.csv"
+    run: msmc.convert_msmc_output(output[0], mutation_rate=1e-8, generation_time=generation_time)
 
 
 def ne_files_msmc(wildcards):
-    return expand(output_dir + "/{seeds}/{samps}.trees.multihep.txt.final.txt.csv",
+    return expand(output_dir + "/Results/{seeds}/{samps}.trees.multihep.txt.final.txt.csv",
             seeds=seed_array,samps=num_sampled_genomes_msmc)
 
 
 rule compound_msmc:
     input: ne_files_msmc,
-    output: output_dir+"/msmc_estimated_Ne.png"
+    output: output_dir+"/Results/msmc_estimated_Ne.png"
     run: plots.plot_compound_msmc(model, input, output[0])
 
 
@@ -278,11 +280,16 @@ rule all_plot:
         f2 = ne_files_smcpp,
         f3 = ne_files_msmc,
     output:
-        output_dir + "/all_estimated_Ne.pdf"
+        output_dir + "/Results/all_estimated_Ne.pdf"
     run: 
         plots.plot_all_ne_estimates(input.f1, input.f2, input.f3, output[0],
                     model=model, n_samp=num_sampled_genomes_per_replicate,
                     generation_time=generation_time, pop_id=population_id)
+
+
+rule clean_intermediate:
+    shell:
+        "rm -r " + output_dir + "/Intermediate/"
 
 
 rule clean:

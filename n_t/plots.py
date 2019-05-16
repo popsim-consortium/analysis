@@ -61,12 +61,19 @@ def plot_compound_msmc(infiles, outfile):
 
 def plot_all_ne_estimates(sp_infiles, smcpp_infiles, msmc_infiles, outfile,
                             model, n_samp, generation_time, pop_id = 0, steps=None):
+
+    #mass_migration_events = []
+    #for demo in self.demographic_events:
+    #if type(demo) == MassMigration:
+    #    mass_migration_objects.append(demo)
+    #    mass_migration_times.append(demo.time)
     
     ddb = msprime.DemographyDebugger(**model.asdict())
     if steps is None:
         end_time = ddb.epochs[-2].end_time + 10000
         steps = np.linspace(1,end_time,end_time+1)
     pop_size = ddb.population_size_trajectory(steps=steps)
+    # if mm abouve, switch pops at relavent time.
     pop_size = pop_size[:, pop_id]
     num_samples = [0 for _ in range(ddb.num_populations)]
     num_samples[pop_id] = n_samp

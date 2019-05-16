@@ -79,7 +79,7 @@ def convert_msmc_output(results_file, mutation_rate, generation_time):
     To get population sizes out of coalescence rates, first take the inverse of the coalescence rate, 
     scaledPopSize = 1 / lambda00. Then divide this scaled population size by 2*mu
     """
-    outfile = results_file+".csv"
+    outfile = results_file
     out_fp = open(outfile, "w")
     in_fp = open(results_file, "r")
     header = in_fp.readline()
