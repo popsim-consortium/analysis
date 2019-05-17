@@ -48,7 +48,7 @@ num_sampled_genomes_per_replicate = config["num_sampled_genomes_per_replicate"]
 # Here is a list of sample sizes to run msmc on. 
 # Each element counts as its own analysis
 # so there will be "replicates" runs for each size
-num_sampled_genomes_msmc = [int(x) for x in config["num_sampled_genomes_msmc"]]
+num_sampled_genomes_msmc = [int(x) for x in config["num_sampled_genomes_msmc"].split()]
 
 # The number of msmc Baumwelch(?) iterations to run,
 # typically 20
