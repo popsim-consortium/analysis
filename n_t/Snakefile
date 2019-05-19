@@ -255,7 +255,7 @@ rule run_msmc:
 rule convert_msmc:
     input: rules.run_msmc.output
     output: output_dir + "/Results/{seeds}/{samps}.trees.multihep.txt.final.txt.csv"
-    run: msmc.convert_msmc_output(output[0], mutation_rate=1e-8, generation_time=generation_time)
+    run: msmc.convert_msmc_output(input[0] ,output[0], mutation_rate=1e-8, generation_time=generation_time)
 
 
 def ne_files_msmc(wildcards):

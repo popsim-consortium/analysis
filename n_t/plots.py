@@ -99,12 +99,12 @@ def plot_all_ne_estimates(sp_infiles, smcpp_infiles, msmc_infiles, outfile,
     ax[1].set_title("stairwayplot")
 
     # plot msmc estimates
-    msmc_sample_sizes = []
+    #msmc_sample_sizes = []
     for infile in msmc_infiles:
         fn = os.path.basename(infile)
         samp = fn.split(".")[0]
-        if samp not in msmc_sample_sizes:
-            msmc_sample_sizes.append(samp)
+        #if samp not in msmc_sample_sizes:
+        #    msmc_sample_sizes.append(samp)
         nt = pandas.read_csv(infile, usecols=[1, 2], skiprows=0)
         line3, = ax[2].plot(nt['x'], nt['y'], alpha=0.6)
     ax[2].plot(steps, 1/(2*coal_rate), c="black")
