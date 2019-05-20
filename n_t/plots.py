@@ -6,7 +6,7 @@ import seaborn as sns
 import matplotlib
 import msprime
 import os
-import itertools
+import matplotlib.patches as mpatches
 from matplotlib import pyplot as plt
 import numpy as np
 # Force matplotlib to not use any Xwindows backend.
@@ -61,11 +61,12 @@ def plot_compound_msmc(infiles, outfile):
 
 
 def plot_all_ne_estimates(sp_infiles, smcpp_infiles, msmc_infiles, outfile,
-                            model, n_samp, generation_time, pop_id = 0, steps=None):
+                            model, n_samp, generation_time, species,
+                            pop_id = 0, steps=None):
 
     ddb = msprime.DemographyDebugger(**model.asdict())
     if steps is None:
-        end_time = ddb.epochs[-2].end_time + 1000
+        end_time = ddb.epochs[-2].end_time + 10000
         steps = np.linspace(1,end_time,end_time+1)
     num_samples = [0 for _ in range(ddb.num_populations)]
     num_samples[pop_id] = n_samp
@@ -73,6 +74,7 @@ def plot_all_ne_estimates(sp_infiles, smcpp_infiles, msmc_infiles, outfile,
         num_samples=num_samples, double_step_validation=False)
     steps = steps * generation_time
     num_msmc = set([os.path.basename(infile).split(".")[0] for infile in msmc_infiles])
+    num_msmc = sorted([int(x) for x in num_msmc])
     f, ax = plt.subplots(1,2+len(num_msmc),sharex=True,sharey=True,figsize=(14, 7))
     # plot smcpp estimates
     for infile in smcpp_infiles:
@@ -92,15 +94,19 @@ def plot_all_ne_estimates(sp_infiles, smcpp_infiles, msmc_infiles, outfile,
         for infile in msmc_infiles:
             fn = os.path.basename(infile)
             samp = fn.split(".")[0]
-            if(samp == sample_size):
+            if(int(samp) == sample_size):
                 nt = pandas.read_csv(infile, usecols=[1, 2], skiprows=0)
                 line3, = ax[2+i].plot(nt['x'], nt['y'],alpha=0.8)
             
         ax[2+i].plot(steps, 1/(2*coal_rate), c="black")
         ax[2+i].set_title(f"msmc, ({sample_size} samples)")
 
+    plt.suptitle(f"{species}, population id {pop_id}", fontsize = 16)
+
     for i in range(2+len(num_msmc)):
         ax[i].set(xscale="log", yscale="log")
         ax[i].set_xlabel("time (years ago)")
+    red_patch = mpatches.Patch(color='black', label='Coalescence rate derived Ne')
+    ax[0].legend(frameon=False, fontsize=10, handles=[red_patch])
     ax[0].set_ylabel("population size")
     f.savefig(outfile, bbox_inches='tight', alpha=0.8)

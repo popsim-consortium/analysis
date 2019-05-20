@@ -284,7 +284,8 @@ rule all_plot:
     run: 
         plots.plot_all_ne_estimates(input.f1, input.f2, input.f3, output[0],
                     model=model, n_samp=num_sampled_genomes_per_replicate,
-                    generation_time=generation_time, pop_id=population_id)
+                    generation_time=generation_time, species=config["species"],
+                    pop_id=population_id)
 
 
 rule clean:
