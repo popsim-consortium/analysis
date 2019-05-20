@@ -287,15 +287,10 @@ rule all_plot:
                     generation_time=generation_time, pop_id=population_id)
 
 
-rule clean_intermediate:
-    shell:
-        "rm -r " + output_dir + "/Intermediate/"
-
-
 rule clean:
     shell:
-        "rm -rf stairwayplot \
+        f"rm -rf stairwayplot \
             stairwayplot.tar.gz \
-            "+output_dir+" \
+            {output_dir}/Intermediate \
             .genetic_map_downloaded \
             .snakemake"
