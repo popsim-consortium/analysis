@@ -60,12 +60,12 @@ def run_msmc_estimate(input_files, output_file, msmc_exec_loc, iterations=1, nco
     """
     
     cmd = (f"{msmc_exec_loc} --fixedRecombination -o \
-        {output_file} -i {iterations} -t {ncores} {input_files}")
+        {output_file} -i {iterations} {input_files}")
     subprocess.run(cmd, shell=True, check=True)
     return None
 
 
-def convert_msmc_output(results_file, mutation_rate, generation_time):
+def convert_msmc_output(results_file, outfile, mutation_rate, generation_time):
     """
     This function converts the output from msmc into a csv the will be read in for
     plotting comparison.
@@ -79,7 +79,6 @@ def convert_msmc_output(results_file, mutation_rate, generation_time):
     To get population sizes out of coalescence rates, first take the inverse of the coalescence rate, 
     scaledPopSize = 1 / lambda00. Then divide this scaled population size by 2*mu
     """
-    outfile = results_file+".csv"
     out_fp = open(outfile, "w")
     in_fp = open(results_file, "r")
     header = in_fp.readline()

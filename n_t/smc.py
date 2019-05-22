@@ -51,7 +51,7 @@ def run_smcpp_estimate(input_file, base, mutation_rate, ncores):
     logging.info("Running:" + cmd)
     subprocess.run(cmd, shell=True, check=True)
 
-def run_smcpp_plot(input_file, generation_time):
+def run_smcpp_plot(input_file, output_file, generation_time):
     """
     Runs smc++ plot on the specified file, resulting in the output being written
     to the file input_file.png".
@@ -59,4 +59,6 @@ def run_smcpp_plot(input_file, generation_time):
     cmd = (
         f"smc++ plot {input_file}.png {input_file} -g {generation_time} -c")
     logging.info("Running:" + cmd)
+    subprocess.run(cmd, shell=True, check=True)
+    cmd = (f"cp {input_file}.csv  {output_file}")
     subprocess.run(cmd, shell=True, check=True)

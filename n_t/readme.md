@@ -1,24 +1,22 @@
 # Readme for N(t) example
-This directory has a quick example of a workflow for estimating changing 
-population size over time from a simulated sample ($N(t)$) using
-stairwayplot. The basic workflow is organized using `snakemake`
-so the only step needed to perform the simulation and run 
-the estimation is
 
-`$ snakemake -j 8`
+This directory contains the code to run analysis of
+demographic inferance using multiple programs, with 
+identical resulting data from any demographic model 
+found in `stdpopsim` as input to each. 
+This provides an example of how standardized 
+population simulations may be used to compare methods.
 
-In this case the `-j 8` option tells `snakemake` to use 8 cores for 
-the workflow. If more cores are available by all means increase this 
-number.
+The Snakemake workflow includes the neccesary pipeline
+for simulation, analyses, and plotting in an effecient manner.
+Simply choose your parameters in a config file, 
+and let snakemake handle the rest. 
+(For large runs, the use of a cluster is highly encouraged)
 
-If something goes wrong or you need to start from scratch I've
-included a `clean` rule in the `Snakefile`, so you can clean 
-everything out using
-
-`$ snakemake clean`
+_NOTE_: This requires a bleeding edge install of `msprime` at the 
+moment. 
 
 ## Workflow
-
 
 The analysis includes three programs for predicting effective population 
 size through time(`n_t`): 
@@ -31,10 +29,80 @@ There are four target rules that can be executed with the given parameters:
 `compound_stairwayplot`, 
 or you can run all three on the same simulated data with rule `all`.
 
-As of now, you can run any combination of `Knobs` found in `Snakefile`.
-These parameters can be adjusted
-for an analysis run by simply setting the value 
-of the `python` variables at the top of the file. These variables include:
+To run an analysis, create a directory (wherever you want)
+where all results, and intermediate
+files will be stored. Next, create and place a file named `config.json` in it.
+The json file must contain key : value combos described below. An example 
+might look like this:
+
+```json
+{
+    "seed" : 12345,
+    "population_id" : 0,
+    "num_sampled_genomes_per_replicate" : 20,  
+    "num_sampled_genomes_msmc" : "2 8",
+    "num_msmc_iterations" : 20,
+    "replicates" : 10,
+    "species" : "homo_sapiens",
+    "model" : "GutenkunstThreePopOutOfAfrica",
+    "genetic_map" : "HapmapII_GRCh37",
+    "chrm_list" : "all",
+    "generation_time" : 30,
+}
+```
+
+Once you have creates a directory which contains the config file
+simply run snakemake from _this_ directory (n_t), and point it to your analysis run
+directory, like so
+
+`snakemake -j 40 --config config="/projects/kernlab/jgallowa/homo_sapiens_Gutenkunst_0"`
+
+where `-j` is the number cores available to run jobs in parallel, and 
+`--config` points to the _directory_ that contains the config file.
+
+### Cluster environments
+Our workflow can also be run on a cluster. To do so requires
+the setup of a `.json` configuration file that lets `snakemake`
+know about your cluster. We have provided an example of 
+such a file in `cluster_talapas.json` that is for use with a
+University of Oregon SLURM cluster. 
+
+```json
+{
+    "__default__" :
+    {
+        "time" : "02:30:00",
+        "n" : 1,
+        "partition" : "kern,preempt",
+        "mem" : "16G",
+        "cores" : "4",
+    },
+    "run_msmc" :
+    {
+        "time" : "05:00:00",
+        "mem" : "32G",
+        "cores" : "4",
+    }
+    
+}
+```
+
+At a minimum, you should
+edit the names of the partition to match those on your own HPC.
+The workflow can then be launched with the call
+
+`snakemake -j 999 --config config="/projects/kernlab/jgallowa/homo_sapiens_Gutenkunst_0" --cluster-config cluster_talapas.json --cluster "sbatch -p {cluster.partition} -n {cluster.n} -t {cluster.time} --mem-per-cpu {cluster.mem} -c {cluster.cores}"`
+
+(it may prove useful to simply put this command in a bash script)
+
+and jobs will be automatically farmed out to the cluster
+
+### Final output
+The current final output is a plot comparing stairwayplot and smc++ estimates of $N(t)$, i.e., 
+`homo_sapiens_Gutenkunst/all_estimated_Ne.png`  
+
+
+## Parameter Description
 
 `seed` : `<class 'int'>` 
 This sets the seed such that any anaysis configuration
@@ -79,29 +147,3 @@ used for simulations.
 for input into each of the analysis run. All chromosomes simulated will be fed
 as a single input into each analysis by the inference programs, for each replicate.
 
-### Dependencies
-Most dependencies can be loaded in using `pip install -r requirements.txt`. 
-An exception
-to this is `smc++` which uses `conda` for its install. The simplest install
-should be achieved using
-
- `$ conda install -c terhorst -c bioconda smcpp`
-
-Further details on `smc++` and its use can be found 
-[here](https://github.com/popgenmethods/smcpp)
-
-### Cluster environments
-Our workflow can also be run on a cluster. To do so requires
-the setup of a `.json` configuration file that lets `snakemake`
-know about your cluster. We have provided an example of 
-such a file in `cluster_talapas.json` that is for use with a
-University of Oregon SLURM cluster. At a minimum, you should
-edit the names of the partition to match those on your own HPC.
-The workflow can then be launched with the call
-
-`$ snakemake -j 999 --cluster-config cluster_talapas.json --cluster "sbatch -p {cluster.partition} -n {cluster.n}  -t {cluster.time}"`
-
-and jobs will be automatically farmed out to the cluster
-
-### Final output
-The current final output is a plot comparing stairwayplot and smc++ estimates of $N(t)$, i.e., `homo_sapiens_Gutenkunst/all_estimated_Ne.png`  
