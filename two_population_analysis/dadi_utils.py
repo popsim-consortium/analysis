@@ -7,24 +7,18 @@ import dadi
 import os
 import matplotlib.pyplot as plt
 import random
+import tskit
 
-def msprime_to_dadi_simulation_OutOfAfrica(path, seed, chrom, sample_size=20):
+
+
+
+def ts_to_dadi_sfs(ts_path,out_path,out_path_nonvariant, sample_size=20):
 	'''
 	Generate however many different SFS with msprime and convert+save them into SFS for dadi to use.
 	'''
-	#For testing
-	# print(path, seed, chrom, sample_size)
-	chrom = homo_sapiens.genome.chromosomes[chrom]
-	model = homo_sapiens.GutenkunstThreePopOutOfAfrica()
+	ts = tskit.load(ts_path)
 
-	samples_pops_joint = [msprime.Sample(population=0, time=0)] * sample_size + [msprime.Sample(population=1, time=0)] * sample_size
-	ts_pops_joint = msprime.simulate(
-		samples=samples_pops_joint,
-		recombination_map=chrom.recombination_map(),
-		mutation_rate=chrom.default_mutation_rate,
-		random_seed=seed,
-		**model.asdict())
-	haps_pops_joint = np.array(ts_pops_joint.genotype_matrix())
+	haps_pops_joint = np.array(ts.genotype_matrix())
 
 	#Break up the haplotypes into seperate populations based on sample_size
 	haps_pop0_joint = haps_pops_joint[:,:sample_size]
@@ -37,8 +31,12 @@ def msprime_to_dadi_simulation_OutOfAfrica(path, seed, chrom, sample_size=20):
 
 	sfs_joint = allel.joint_sfs(allele_counts_pop0_joint[:,1], allele_counts_pop1_joint[:,1])
 	sfs_joint = dadi.Spectrum(sfs_joint)
+	sfs_joint.to_file(out_path)
+	sfs_joint[0,0] = ts.sequence_length - ts.num_sites # need to get the number of nonvariant sites for the [0,0] entry
+	sfs_joint.to_file(out_path_nonvariant)
 
-	sfs_joint.to_file(path)
+
+
 
 
 def OoA_func(params, ns, pts):
@@ -67,7 +65,7 @@ def OoA_func(params, ns, pts):
 	fs = dadi.Spectrum.from_phi(phi, ns, (xx,xx,xx))
 	return fs
 
-def compare_msprime_dadi_OutOfAfrica(input_fids, output_path):
+def compare_msprime_dadi_OutOfAfrica(input_fids, output_path, sample_size=20):
 	#For parameter reference
 	#p0 = [nuAf, nuB, nuEu0, nuEu, nuAs0, nuAs, mAfB, mAfEu, mAfAs, mEuAs, TAf, TB, TEuAs]
 	OoA_popt = [1.68, 0.287, 0.129, 3.74, 0.070, 7.29, 3.65, 0.44, 0.28, 1.40, 0.607, 0.396, 0.058]
@@ -77,7 +75,7 @@ def compare_msprime_dadi_OutOfAfrica(input_fids, output_path):
 	OoA_model = OoA_extrap_func(OoA_popt, OoA_ns, OoA_pts_l)
 	OoA_model = OoA_model.marginalize([2])
 
-	msprime_joint_sfs = dadi.Spectrum([[0]*21]*21) 
+	msprime_joint_sfs = dadi.Spectrum([[0]*(sample_size+1)]*(sample_size+1))
 
 	for fid in input_fids:
 		msprime_joint_sfs_temp = dadi.Spectrum.from_file(fid)
@@ -89,10 +87,10 @@ def compare_msprime_dadi_OutOfAfrica(input_fids, output_path):
 	fig.savefig(output_path)
 
 
-def fit_dadi_model(sfs_files,output_pdf_name,output_text_name,demo_model,fit_seed):
+def fit_dadi_model(sfs_files,output_pdf_name,output_text_name,demo_model,fit_seed, sample_size=20):
 	np.random.seed(int(fit_seed))
 
-	msprime_joint_sfs = dadi.Spectrum([[0]*21]*21) 
+	msprime_joint_sfs = dadi.Spectrum([[0]*(sample_size+1)]*(sample_size+1))
 
 	for fid in sfs_files:
 		msprime_joint_sfs += dadi.Spectrum.from_file(fid)
@@ -118,6 +116,12 @@ def fit_dadi_model(sfs_files,output_pdf_name,output_text_name,demo_model,fit_see
 		lower_bound = [0, 0, 0, 0]
 		upper_bound = [50, 50, 10, 10]
 
+	if demo_model == 'IM_fsc':
+		func = dadi.Demographics2D.IM_fsc
+		params = [1.5, 1.5, 0.5, 0.5, 0.5]
+		lower_bound = [0, 0, 0, 0, 0]
+		upper_bound = [50, 50, 10, 10, 10]
+
 
 	extrap_function = dadi.Numerics.make_extrap_log_func(func)
 
@@ -132,10 +136,9 @@ def fit_dadi_model(sfs_files,output_pdf_name,output_text_name,demo_model,fit_see
 
 	p_guess = dadi.Misc.perturb_params(params, lower_bound=lower_bound, upper_bound=upper_bound)
 
-	popt = dadi.Inference.optimize(p_guess, msprime_joint_sfs, extrap_function, pts_l, multinom=True, verbose = True, 
+	popt = dadi.Inference.optimize(p_guess, msprime_joint_sfs, extrap_function, pts_l, multinom=True, verbose = True,
 					lower_bound=lower_bound, upper_bound=upper_bound,
-					fixed_params=fixed,
-					maxiter=2)
+					fixed_params=fixed)
 
 	# #For debugging
 	# popt = p_guess
@@ -158,3 +161,44 @@ def fit_dadi_model(sfs_files,output_pdf_name,output_text_name,demo_model,fit_see
 	fig.clear()
 	dadi.Plotting.plot_2d_comp_multinom(model, msprime_joint_sfs, vmin=1, show=False)
 	fig.savefig(output_pdf_name)
+
+
+
+def get_dadi_output(indir,dadi_seeds,ofile):
+
+	output = []
+	for seed in dadi_seeds:
+		path=indir+"/IM_fsc/model_params_"+str(seed)+".txt"
+		with open(path) as infile:
+			file = infile.readlines()
+			#print(file)
+			ll = file[0].split()[1]
+			theta = file[1].split()[1]
+			nu1 = file[3].split(",")[0]
+			nu1=nu1.replace("[","")
+			nu2 = file[3].split(",")[1]
+			T = file[3].split(",")[2]
+			m1 = file[3].split(",")[3]
+			m2 = file[3].split(",")[4]
+			m2=m2.replace("]","")
+			line = [ll,theta,nu1,nu2,T,m1,m2]
+			output.append(line)
+
+	output.sort(key=lambda x: float(x[0]), reverse=True)
+
+	with open(indir+"/"+ofile, 'w') as outfile:
+		outfile.write("ll\ttheta\tnu1\tnu2\tT\tm1\tm2\n")
+		outfile.writelines('\t'.join(i) + '\n' for i in output)
+
+
+def get_best_dadi_runs(indir,seeds,outfile):
+
+	header_count = 0
+	with open(outfile, 'w') as ofile:
+		for seed in seeds:
+			with open(indir+"/"+str(seed)+"/dadi_analysis/dadi_results_sorted.txt") as infile:
+				file = infile.readlines()
+				if header_count == 0:
+					ofile.write(file[0])
+					header_count =+1
+				ofile.write(file[1])
