@@ -1,0 +1,26 @@
+// Priors and rules file
+// *********************
+
+[PARAMETERS]
+//#isInt? #name   #dist.#min  #max
+//all Ns are in number of haploid individuals
+1  NANC     unif     100  100000  output
+1  NEU      unif     100  100000  output
+1  NAF      unif     100  100000  output
+1  NBOT     unif     10   10000   output
+1  TEU      unif     10   10000   output
+1  TBOT     unif     10   10000   hide
+1  TAF      unif     10   10000   hide
+0  MIG_AFEU    logunif  1e-5 1e-2   output
+0  MIG_AFB     logunif  1e-5 1e-2   output
+
+[RULES]
+
+[COMPLEX PARAMETERS]
+1  TOOA = TEU+TBOT   output
+0  RATIO_EU_BOT = NBOT/NEU output
+0  RTEA = log(RATIO_EU_BOT)    output
+0  R1 = RTEA/TEU         output
+1  TANC = TOOA+TAF    output
+0  RES1 = NBOT/NEU     output
+0  RES2 = NANC/NAF    output
