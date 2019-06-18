@@ -6,7 +6,7 @@ import msprime
 from stdpopsim import homo_sapiens
 
 
-def simulate(out_path, species, model, genetic_map, seed, chrmStr, 
+def simulate(out_path, species, model, genetic_map, seed, chrmStr,
              sample_size=20, population=0):
     chrom = species.genome.chromosomes[chrmStr]
     # TODO : Sample outside of population 0?

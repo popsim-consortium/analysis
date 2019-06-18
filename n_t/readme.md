@@ -46,7 +46,7 @@ might look like this:
     "species" : "homo_sapiens",
     "model" : "GutenkunstThreePopOutOfAfrica",
     "genetic_map" : "HapmapII_GRCh37",
-    "chrm_list" : "all",
+    "chrm_list" : "chr22,chrX",
     "generation_time" : 25,
 }
 ```
@@ -143,7 +143,8 @@ should inherit from `<class Model>`
 `genetic_map` : `<class childclass GeneticMap>` This will define the genetic map
 used for simulations.
 
-`chrm_list` : `<class 'list[str]'>` The chromosomes you would like to simulate
-for input into each of the analysis run. All chromosomes simulated will be fed
+`chrm_list` : `<class 'str'>` A string of the chromosome names you would like to simulate,
+separated by commas. All chromosomes simulated will be fed
 as a single input into each analysis by the inference programs, for each replicate.
+Set to "all" to simulate all chromsomes for the genome.
 
