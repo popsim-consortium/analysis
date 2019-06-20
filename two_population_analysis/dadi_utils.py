@@ -87,6 +87,28 @@ def compare_msprime_dadi_OutOfAfrica(input_fids, output_path, sample_size=20):
 	fig.savefig(output_path)
 
 
+
+def OoA_2D_Af_Eu_func(params, ns, pts):
+	'''
+	Out of Africa model for dadi to simulate SFS
+	'''
+	nuAf, nuB, nuEu0, nuEu, mAfB, mAfEu, TAf, TB, TEuF = params
+
+	xx = dadi.Numerics.default_grid(pts)
+
+	phi = dadi.PhiManip.phi_1D(xx)
+	phi = dadi.Integration.one_pop(phi, xx, TAf, nu=nuAf)
+
+	phi = dadi.PhiManip.phi_1D_to_2D(xx, phi)
+	phi = dadi.Integration.two_pops(phi, xx, TB, nu1=nuAf, nu2=nuB, m12=mAfB, m21=mAfB)
+
+	nuEu_func = lambda t: nuEu0 * (nuEu/nuEu0)**(t/TEuF)
+	phi = dadi.Integration.two_pops(phi, xx, TEuF, nu1=nuAf, nu2=nuEu_func, m12=mAfEu, m21=mAfEu)
+
+	fs = dadi.Spectrum.from_phi(phi, ns, (xx,xx))
+	return fs
+
+
 def fit_dadi_model(sfs_files,output_pdf_name,output_text_name,demo_model,fit_seed, sample_size=20):
 	np.random.seed(int(fit_seed))
 
@@ -121,6 +143,12 @@ def fit_dadi_model(sfs_files,output_pdf_name,output_text_name,demo_model,fit_see
 		params = [1.5, 1.5, 0.5, 0.5, 0.5]
 		lower_bound = [0, 0, 0, 0, 0]
 		upper_bound = [50, 50, 10, 10, 10]
+
+	if demo_model == 'Gute2pop':
+		func = OoA_2D_Af_Eu_func
+		params = [1.5, 1.5, 1.5, 1.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+		lower_bound = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+		upper_bound = [50, 50, 50, 50, 10, 10, 10, 10, 10]
 
 
 	extrap_function = dadi.Numerics.make_extrap_log_func(func)
@@ -164,11 +192,11 @@ def fit_dadi_model(sfs_files,output_pdf_name,output_text_name,demo_model,fit_see
 
 
 
-def get_dadi_output(indir,dadi_seeds,ofile):
+def get_dadi_output_IM(indir,model,dadi_seeds,ofile):
 
 	output = []
 	for seed in dadi_seeds:
-		path=indir+"/IM_fsc/model_params_"+str(seed)+".txt"
+		path=indir+model+"/model_params_"+str(seed)+".txt"
 		with open(path) as infile:
 			file = infile.readlines()
 			#print(file)
@@ -188,6 +216,37 @@ def get_dadi_output(indir,dadi_seeds,ofile):
 
 	with open(indir+"/"+ofile, 'w') as outfile:
 		outfile.write("ll\ttheta\tnu1\tnu2\tT\tm1\tm2\n")
+		outfile.writelines('\t'.join(i) + '\n' for i in output)
+
+
+def get_dadi_output_Gute2pop(indir,model,dadi_seeds,ofile):
+
+	output = []
+	for seed in dadi_seeds:
+		path=indir+model+"/model_params_"+str(seed)+".txt"
+		with open(path) as infile:
+			file = infile.readlines()
+
+			ll = file[0].split()[1]
+			theta = file[1].split()[1]
+			nuAf = file[3].split(",")[0]
+			nuAf=nuAf.replace("[","")
+			nuB = file[3].split(",")[1]
+			nuEu0 = file[3].split(",")[2]
+			nuEu = file[3].split(",")[3]
+			mAfB = file[3].split(",")[4]
+			mAfEu = file[3].split(",")[5]
+			TAf = file[3].split(",")[6]
+			TB = file[3].split(",")[7]
+			TEuF = file[3].split(",")[8]
+			TEuF=TEuF.replace("]","")
+			line = [ll,theta,nuAf,nuB,nuEu0,nuEu,mAfB,mAfEu,TAf,TB,TEuF]
+			output.append(line)
+
+	output.sort(key=lambda x: float(x[0]), reverse=True)
+
+	with open(indir+"/"+ofile, 'w') as outfile:
+		outfile.write("ll\ttheta\tnuAf\tnuB\tnuEu0\tnuEu\tmAfB\tmAfEu\tTAf\tTB\tTEuF\n")
 		outfile.writelines('\t'.join(i) + '\n' for i in output)
 
 

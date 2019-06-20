@@ -47,8 +47,8 @@ def get_fsc_output(path_to_fsc_analysis,num_runs,ofile,fsc_model):
             file = infile.readlines()
             header = file[0]
             output.append(file[1].split())
-
-    output.sort(key=lambda x: float(x[14]), reverse=True)
+    # note that the column this is sorted on may need to be changed depending on how many parameters there are
+    output.sort(key=lambda x: float(x[6]), reverse=True)
 
     with open(path_to_fsc_analysis+ofile, 'w') as outfile:
         outfile.write(header)
