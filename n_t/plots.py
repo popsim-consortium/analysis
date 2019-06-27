@@ -103,3 +103,33 @@ def plot_all_ne_estimates(sp_infiles, smcpp_infiles, msmc_infiles, outfile,
     ax[0].legend(frameon=False, fontsize=10, handles=[red_patch])
     ax[0].set_ylabel("population size")
     f.savefig(outfile, bbox_inches='tight', alpha=0.8)
+
+
+
+def plot_stairwayplot_coalrate(sp_infiles, outfile,
+                            model, n_samp, generation_time, species,
+                            pop_id = 0, steps=None): ##JRA
+
+    ddb = msprime.DemographyDebugger(**model.asdict())
+    if steps is None:
+        end_time = ddb.epochs[-2].end_time + 10000
+        steps = np.linspace(1,end_time,end_time+1)
+    num_samples = [0 for _ in range(ddb.num_populations)]
+    num_samples[pop_id] = n_samp
+    coal_rate, P = ddb.coalescence_rate_trajectory(steps=steps,
+        num_samples=num_samples, double_step_validation=False)
+    steps = steps * generation_time
+    f, ax = plt.subplots(1,1,sharex=True,sharey=True,figsize=(7, 7))
+    ax.plot(steps, 1/(2*coal_rate), c="black")
+    for infile in sp_infiles:
+        nt = pandas.read_csv(infile, sep="\t", skiprows=5)
+        line2, = ax.plot(nt['year'], nt['Ne_median'],alpha=0.8)
+    ax.plot(steps, 1/(2*coal_rate), c="black")
+    ax.set_title("stairwayplot")
+    plt.suptitle(f"{species}, population id {pop_id}", fontsize = 16)
+    ax.set(xscale="log", yscale="log")
+    ax.set_xlabel("time (years ago)")
+    red_patch = mpatches.Patch(color='black', label='Coalescence rate derived Ne')
+    ax.legend(frameon=False, fontsize=10, handles=[red_patch])
+    ax.set_ylabel("population size")
+    f.savefig(outfile, bbox_inches='tight', alpha=0.8)

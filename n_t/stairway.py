@@ -12,7 +12,8 @@ import tskit
 import allel
 import numpy as np
 import tqdm
-
+import os
+import pickle
 
 def write_stairway_sfs(sequence_length, num_samples, sfs, path):
     """
@@ -28,7 +29,7 @@ def write_stairway_sfs(sequence_length, num_samples, sfs, path):
         for x in sfs:
             print(int(x), end="\t", file=out)
         print(file=out)
-    
+
 
 class StairwayPlotRunner(object):
     """
@@ -47,26 +48,26 @@ class StairwayPlotRunner(object):
         Converts the specified tskit tree sequence to text files used by
         stairway plot.
         """
-
-        
         derived_counts_all = [[] for _ in range(num_bootstraps + 1)]
-        total_length = 0 
+        total_length = 0
         num_samples = 0
-
-        for i,ts_p in enumerate(ts_path):        
-    
+        for i,ts_p in enumerate(ts_path):
             ts = tskit.load(ts_p)
             total_length += ts.sequence_length
             num_samples = ts.num_samples
-
-            # count alleles, bootstrap over sites, return the SFS minus the 0% bin
             haps = ts.genotype_matrix()
-            genotypes = allel.HaplotypeArray(haps).to_genotypes(ploidy=2)
-            allele_counts = genotypes.count_alleles()
-            derived_allele_counts = allele_counts[:, 1]
-            derived_counts_all[0].extend(derived_allele_counts)    
-        
-            # Write bootstrapped inputs
+
+            # Mask high-ld sites and return genotypes
+            mask_path = ts_p + ".unlinkedMask.p"
+            if os.path.exists(mask_path):
+                mask_file = open(mask_path, "rb")
+                ul = pickle.load(mask_file)
+                allele_counts = allel.HaplotypeArray(haps[ul,:]).count_alleles()
+            else:
+                allele_counts = allel.HaplotypeArray(haps).count_alleles()
+
+            # Bootstrap allele counts
+            derived_counts_all[0].extend(allele_counts[:, 1])
             for j in range(1, num_bootstraps + 1):
                 nsites = np.shape(allele_counts)[0]
                 bootset = np.random.choice(np.arange(0, nsites, 1), nsites, replace=True)
@@ -74,13 +75,14 @@ class StairwayPlotRunner(object):
                 der_bootac = bootac[:, 1]
                 derived_counts_all[j].extend(der_bootac)
 
+        # Get the SFS minus the 0 bin and write output
         stairway_files = []
         for l in range(len(derived_counts_all)):
             sfs = allel.sfs(derived_counts_all[l])[1:]
             filename = self.workdir / "sfs_{}.txt".format(l)
             write_stairway_sfs(total_length, num_samples, sfs, filename)
             stairway_files.append(filename)
-            
+
         return stairway_files
 
     def _run_theta_estimation(self, input_file):

@@ -14,6 +14,7 @@ for estimates of N_t (Ne through time).
 
 import pathlib
 import sys
+import os
 
 import numpy as np
 import stdpopsim
@@ -48,7 +49,7 @@ num_sampled_genomes_per_replicate = config["num_sampled_genomes_per_replicate"]
 # Here is a list of sample sizes to run msmc on. 
 # Each element counts as its own analysis
 # so there will be "replicates" runs for each size
-num_sampled_genomes_msmc = [int(x) for x in config["num_sampled_genomes_msmc"].split()]
+num_sampled_genomes_msmc = [int(x) for x in config["num_sampled_genomes_msmc"].split(",")]
 
 # The number of msmc Baumwelch(?) iterations to run,
 # typically 20
@@ -58,7 +59,7 @@ num_msmc_iterations = config["num_msmc_iterations"]
 replicates = config["replicates"]
 
 # Where you would like all output files from analysis to live
-output_dir = config["config"]
+output_dir = os.path.abspath(config["config"])
 
 # The analysis species
 species = getattr(stdpopsim,config["species"])
@@ -78,7 +79,7 @@ if(config["chrm_list"] != "all"):
     chrm_list = [chr for chr in config["chrm_list"].split(",")]
 
 # For plotting
-generation_time = config["generation_time"]
+generation_time = model.generation_time
 
 # This grabs the default mr from the first chromosome,
 # Ultimitely This needs to be replaced with the weighted average
@@ -95,10 +96,22 @@ seed_array = np.random.random_integers(1,2**31,replicates)
 genetic_map_downloaded_flag= ".genetic_map_downloaded"
 msmc_exec = "../extern/msmc/build/msmc"
 stairwayplot_code = "stairwayplot/swarmops.jar"
+try:
+    ld_thresh = config["ld_thresh"]
+except KeyError:
+    ld_thresh = 1.0
 
-
+# Run full pipeline!
 rule all:
-   input: output_dir + "/Results/all_estimated_Ne.pdf"
+    input: output_dir + "/Results/all_estimated_Ne.pdf"
+
+## Run only the simulations!
+#rule all:
+#    input: expand(output_dir + "/Intermediate/{seeds}/{chrms}.trees", seeds=seed_array, chrms=chrm_list) 
+
+## Run only stairwayplot and plot with coalescent rate!
+#rule all:
+#   input: output_dir + "/Results/stairwayplot.pdf"
 
 rule download_genetic_map:
     output: genetic_map_downloaded_flag
@@ -121,12 +134,13 @@ rule simulation:
         output_dir + "/Intermediate/{seeds}/{chrms}.trees"
     # TODO get simulation parameters from stdpopsim, so we can share them easily 
     # with anlysis code below?
-    run: 
+    threads: 10
+    run:
         simulations.simulate(
             out_path = output[0], species = species, model = model,
             genetic_map = genetic_map, seed = wildcards.seeds, 
             chrmStr = wildcards.chrms, sample_size = num_sampled_genomes_per_replicate,
-            population = population_id)
+            population = population_id, ld_thresh = ld_thresh, max_workers=threads)
 
 
 # ###############################################################################
@@ -159,7 +173,6 @@ rule run_stairwayplot:
             stairway_dir=pathlib.Path.cwd() / "stairwayplot")
         runner.ts_to_stairway(inputs, num_bootstraps=200)
         runner.run_theta_estimation(max_workers=threads, show_progress=True)
-        # TODO get the rate here from stdpopsim. 
         runner.run_summary(output, mutation_rate=mutation_rate, generation_time=generation_time)
 
 
@@ -175,6 +188,17 @@ rule compound_stairwayplot:
         output_dir + "/stairwayplot_estimated_Ne.png"
     run: plots.plot_compound_Ne_estimate(model, input, output[0])
 
+
+rule plot_stairwayplot:
+    input:
+        f1 = ne_files
+    output:
+        output_dir + "/Results/stairwayplot.pdf"
+    run:
+        plots.plot_stairwayplot_coalrate(input.f1, output[0],
+                    model=model, n_samp=num_sampled_genomes_per_replicate,
+                    generation_time=generation_time, species=config["species"],
+                    pop_id=population_id)
 
 # ###############################################################################
 # SMC++
@@ -193,7 +217,7 @@ rule run_smcpp:
             chrms=chrm_list, seeds=seed_array)
     output:
         output_dir + "/Intermediate/{seeds}/trees.smc.gz.final.json"
-    threads: 8
+    threads: 20
     run:
 	    # need to cd into subdir because smc++ crashes otherwise
         cur = os.getcwd()
@@ -297,5 +321,7 @@ rule clean:
         f"rm -rf stairwayplot \
             stairwayplot.tar.gz \
             {output_dir}/Intermediate \
+            {output_dir}/Results \
+            {output_dir}/stairwayplot \
             .genetic_map_downloaded \
             .snakemake"
