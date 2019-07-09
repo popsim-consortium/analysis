@@ -40,14 +40,14 @@ might look like this:
     "seed" : 12345,
     "population_id" : 0,
     "num_sampled_genomes_per_replicate" : 20,  
-    "num_sampled_genomes_msmc" : "2 8",
+    "num_sampled_genomes_msmc" : "2,8",
     "num_msmc_iterations" : 20,
     "replicates" : 10,
     "species" : "homo_sapiens",
     "model" : "GutenkunstThreePopOutOfAfrica",
     "genetic_map" : "HapmapII_GRCh37",
     "chrm_list" : "chr22,chrX",
-    "generation_time" : 25,
+    "ld_thresh" : 0.1,
 }
 ```
 
@@ -115,10 +115,9 @@ of genomes to simulate for an analysis run.
 `replicates` : `<class 'int'>` The number of replicate simulations to run and 
 analyze. 
 
-`num_sampled_genomes_msmc` : `<class 'list[int]'>` 
-Because we are interested in the 
-variance of predictions from `msmc` with differing number of samples,
-this variable allows the user to specify an array of sample sizes to run. 
+`num_sampled_genomes_msmc` : `<class 'str'>` 
+This variable allows the user to run msmc independently on multiple 
+sample sizes (to be specified as a comma-separated string of sample sizes).
 For each of these sample sizes,
 `replicates` number of analyses will be run with `msmc`. All of these numbers should
 not exceed `num_sampled_genomes_per_replicate` because the input files are 
@@ -147,4 +146,9 @@ used for simulations.
 separated by commas. All chromosomes simulated will be fed
 as a single input into each analysis by the inference programs, for each replicate.
 Set to "all" to simulate all chromsomes for the genome.
+
+`ld_thresh` : `<class 'float'>` For stairwayplot only! Stairwayplot assumes independence between SPNs. 
+This value specifies a threshold for filtering out SNPs in LD. All sites with an r^2 value greater than the 
+specified value will be filtered out of the stairwayplot analysis. If you do not wish to filter your SNPs 
+simply do not include this key in the config.json.
 
