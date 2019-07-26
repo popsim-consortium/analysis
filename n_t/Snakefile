@@ -75,6 +75,7 @@ genetic_map = genetic_map_class()
 # The names of all chromosomes to simulate, separated by commas
 # Use "all" to simulate all chromsomes for the genome
 chrm_list = [chrom for chrom in species.genome.chromosomes]
+chrm_list.remove("chrY")
 if(config["chrm_list"] != "all"):
     chrm_list = [chr for chr in config["chrm_list"].split(",")]
 
@@ -96,22 +97,23 @@ seed_array = np.random.random_integers(1,2**31,replicates)
 genetic_map_downloaded_flag= ".genetic_map_downloaded"
 msmc_exec = "../extern/msmc/build/msmc"
 stairwayplot_code = "stairwayplot/swarmops.jar"
+
 try:
-    ld_thresh = config["ld_thresh"]
+    mask_file = config["mask_file"]
 except KeyError:
-    ld_thresh = 1.0
+    mask_file = None
 
 # Run full pipeline!
-rule all:
-    input: output_dir + "/Results/all_estimated_Ne.pdf"
+#rule all:
+#    input: output_dir + "/Results/all_estimated_Ne.pdf"
 
 ## Run only the simulations!
 #rule all:
 #    input: expand(output_dir + "/Intermediate/{seeds}/{chrms}.trees", seeds=seed_array, chrms=chrm_list) 
 
 ## Run only stairwayplot and plot with coalescent rate!
-#rule all:
-#   input: output_dir + "/Results/stairwayplot.pdf"
+rule all:
+   input: output_dir + "/Results/stairwayplot.pdf"
 
 rule download_genetic_map:
     output: genetic_map_downloaded_flag
@@ -134,13 +136,13 @@ rule simulation:
         output_dir + "/Intermediate/{seeds}/{chrms}.trees"
     # TODO get simulation parameters from stdpopsim, so we can share them easily 
     # with anlysis code below?
-    threads: 10
+    threads: 1 
     run:
         simulations.simulate(
             out_path = output[0], species = species, model = model,
             genetic_map = genetic_map, seed = wildcards.seeds, 
             chrmStr = wildcards.chrms, sample_size = num_sampled_genomes_per_replicate,
-            population = population_id, ld_thresh = ld_thresh, max_workers=threads)
+            population = population_id)
 
 
 # ###############################################################################
@@ -171,7 +173,7 @@ rule run_stairwayplot:
         runner = stairway.StairwayPlotRunner(
             workdir= output_dir + "/stairwayplot/" + wildcards.seeds+"/",
             stairway_dir=pathlib.Path.cwd() / "stairwayplot")
-        runner.ts_to_stairway(inputs, num_bootstraps=200)
+        runner.ts_to_stairway(inputs, num_bootstraps=200, mask_file=mask_file)
         runner.run_theta_estimation(max_workers=threads, show_progress=True)
         runner.run_summary(output, mutation_rate=mutation_rate, generation_time=generation_time)
 
@@ -208,7 +210,7 @@ rule plot_stairwayplot:
 rule ts_to_smc:
     input:rules.simulation.output
     output: output_dir + "/Intermediate/{seeds}/{chrms}.trees.smc.gz"
-    run: smc.write_smcpp_file(input[0])
+    run: smc.write_smcpp_file(input[0], mask_file=mask_file)
 
 
 rule run_smcpp:
@@ -249,7 +251,7 @@ def ne_files_smcpp(wildcards):
 rule compound_smcpp:
     input: ne_files_smcpp
     output: output_dir + "/Results/smcpp_estimated_Ne.png"
-    run: plots.plot_compound_smcpp(model, input, output[0])
+    run: plots.plot_compound_smcpp(input, output[0], model, num_sampled_genomes_per_replicate, generation_time)
 
 
 # ###############################################################################
@@ -260,7 +262,7 @@ rule compound_smcpp:
 rule ts_to_multihep:
     input: rules.simulation.output
     output: output_dir + "/Intermediate/{seeds}/{samps}.{chrms}.trees.multihep.txt"
-    run: msmc.write_msmc_file(input[0], num_sampled_genomes_msmc)
+    run: msmc.write_msmc_file(input[0], num_sampled_genomes_msmc, mask_file=mask_file)
 
 
 rule run_msmc:
@@ -270,7 +272,7 @@ rule run_msmc:
         expand(output_dir + "/Intermediate/{seeds}/{samps}.{chrms}.trees.multihep.txt",
             chrms=chrm_list, seeds=seed_array, samps=num_sampled_genomes_msmc)
     output: output_dir + "/Intermediate/{seeds}/{samps}.trees.multihep.txt.final.txt"
-    threads: 40
+    threads: 8 
     run: 
         inputs = expand(output_dir + "/Intermediate/{seeds}/{samps}.{chrms}.trees.multihep.txt",
             seeds=wildcards.seeds, samps=wildcards.samps, chrms=chrm_list)

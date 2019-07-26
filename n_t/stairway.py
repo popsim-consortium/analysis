@@ -10,10 +10,11 @@ import concurrent.futures
 
 import tskit
 import allel
+import plots
 import numpy as np
+import pandas as pd
 import tqdm
-import os
-import pickle
+
 
 def write_stairway_sfs(sequence_length, num_samples, sfs, path):
     """
@@ -43,7 +44,7 @@ class StairwayPlotRunner(object):
         self.classpath = "{}:{}".format(stairway_path, stairway_path / "swarmops.jar")
         self.java_exe = java_exe
 
-    def ts_to_stairway(self, ts_path, num_bootstraps=1):
+    def ts_to_stairway(self, ts_path, num_bootstraps=1, mask_file=None):
         """
         Converts the specified tskit tree sequence to text files used by
         stairway plot.
@@ -51,21 +52,33 @@ class StairwayPlotRunner(object):
         derived_counts_all = [[] for _ in range(num_bootstraps + 1)]
         total_length = 0
         num_samples = 0
-        for i,ts_p in enumerate(ts_path):
+        for i, ts_p in enumerate(ts_path):
             ts = tskit.load(ts_p)
             total_length += ts.sequence_length
             num_samples = ts.num_samples
             haps = ts.genotype_matrix()
 
-            # Mask high-ld sites and return genotypes
-            mask_path = ts_p + ".unlinkedMask.p"
-            if os.path.exists(mask_path):
-                mask_file = open(mask_path, "rb")
-                ul = pickle.load(mask_file)
-                allele_counts = allel.HaplotypeArray(haps[ul,:]).count_alleles()
-            else:
-                allele_counts = allel.HaplotypeArray(haps).count_alleles()
+            SFSs = []
+            # Masking
+            retain = np.full(ts.get_num_mutations(), False)
+            if mask_file:
+                mask_table = pd.read_csv(mask_file, sep="\t", header=None)
+                chrom = ts_p.split("/")[-1].split(".")[0]
+                sub = mask_table[mask_table[0] == chrom]
+                mask_ints = pd.IntervalIndex.from_arrays(sub[1], sub[2])
+                snp_locs = [int(x.site.position) for x in ts.variants()]
+                tmp_bool = [mask_ints.contains(x) for x in snp_locs]
+                retain = np.logical_or(retain, tmp_bool)
+                total_length -= np.sum(mask_ints.length)
 
+            retain = np.logical_not(retain)
+            # append unmasked SFS
+            SFSs.append(allel.sfs(allel.HaplotypeArray(haps).count_alleles()[:, 1])[1:])
+            # get masked allele counts and append SFS
+            allele_counts = allel.HaplotypeArray(haps[retain, :]).count_alleles()
+            SFSs.append(allel.sfs(allele_counts[:, 1])[1:])
+            sfs_path = ts_p+".sfs.pdf"
+            plots.plot_sfs(SFSs, sfs_path)
             # Bootstrap allele counts
             derived_counts_all[0].extend(allele_counts[:, 1])
             for j in range(1, num_bootstraps + 1):
@@ -74,7 +87,6 @@ class StairwayPlotRunner(object):
                 bootac = allele_counts[bootset, :]
                 der_bootac = bootac[:, 1]
                 derived_counts_all[j].extend(der_bootac)
-
         # Get the SFS minus the 0 bin and write output
         stairway_files = []
         for l in range(len(derived_counts_all)):

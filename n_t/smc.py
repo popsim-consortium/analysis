@@ -6,14 +6,15 @@ import subprocess
 import tskit
 
 
-def write_smcpp_file(path):
+def write_smcpp_file(path, mask_file=None):
     """
     Writes a smcpp input file given a treesequence
     """
     ts = tskit.load(path)
+    chr_name = path.split(".")[0].split("/")[-1]
     # write a vcf intermediate input
     with open(path+".vcf", "w") as vcf_file:
-        ts.write_vcf(vcf_file, 2)
+        ts.write_vcf(vcf_file, 2, contig_id=chr_name)
     # index the vcf
     cmd = f"bgzip {path}.vcf"
     logging.info("Running:" + cmd)
@@ -24,21 +25,25 @@ def write_smcpp_file(path):
     subprocess.run(cmd, shell=True, check=True)
     # run smc++ for vcf conversion
     smc_file = f"{path}.smc.gz"
-    cmd = f"smc++ vcf2smc {vz_file} {smc_file} 1 pop1:"
+    if mask_file:
+        inter_mask_path = f"{path}.mask.gz"
+        cmd = f"cat {mask_file} | bgzip > {inter_mask_path}"
+        logging.info("Running:" + cmd)
+        subprocess.run(cmd, shell=True, check=True)
+        cmd = f"tabix -p bed {inter_mask_path}"
+        logging.info("Running:" + cmd)
+        subprocess.run(cmd, shell=True, check=True)
+        cmd = f"smc++ vcf2smc --mask {inter_mask_path} {vz_file} "
+        cmd = cmd + f"{smc_file} {chr_name} pop1:"
+    else:
+        cmd = f"smc++ vcf2smc {vz_file} {smc_file} {chr_name} pop1:"
+
     for n in range(ts.num_samples // 2):
         cmd = cmd + f"msp_{n},"
     cmd = cmd[0:-1]
     logging.info("Running:" + cmd)
     subprocess.run(cmd, shell=True, check=True)
 
-"""
-def run_smcpp_estimate(input_file, mutation_rate, ncores):
-    cmd = (
-        f"smc++ estimate "
-        f"{mutation_rate} {input_file} --base {input_file} --cores {ncores}")
-    logging.info("Running:" + cmd)
-    subprocess.run(cmd, shell=True, check=True)
-"""
 
 def run_smcpp_estimate(input_file, base, mutation_rate, ncores):
     """
@@ -50,6 +55,7 @@ def run_smcpp_estimate(input_file, base, mutation_rate, ncores):
         f"--base {base} --cores {ncores} {mutation_rate} {input_file}")
     logging.info("Running:" + cmd)
     subprocess.run(cmd, shell=True, check=True)
+
 
 def run_smcpp_plot(input_file, output_file, generation_time):
     """
