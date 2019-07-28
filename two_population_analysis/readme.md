@@ -83,6 +83,7 @@ might look like this:
 }
 ```
 
+Currently smcpp only runs when "chrm_list" is defined as chr22.
 Once you have creates a directory which contains the config file
 simply run snakemake from _this_ directory (two_population_analysis), and point it to your analysis run
 directory, like so
