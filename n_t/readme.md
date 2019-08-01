@@ -47,7 +47,7 @@ might look like this:
     "model" : "GutenkunstThreePopOutOfAfrica",
     "genetic_map" : "HapmapII_GRCh37",
     "chrm_list" : "chr22,chrX",
-    "ld_thresh" : 0.1,
+    "mask_file" : "masks/HapmapII_GRCh37.mask.bed",
 }
 ```
 
