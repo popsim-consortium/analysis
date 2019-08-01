@@ -147,8 +147,6 @@ separated by commas. All chromosomes simulated will be fed
 as a single input into each analysis by the inference programs, for each replicate.
 Set to "all" to simulate all chromsomes for the genome.
 
-`ld_thresh` : `<class 'float'>` For stairwayplot only! Stairwayplot assumes independence between SPNs. 
-This value specifies a threshold for filtering out SNPs in LD. All sites with an r^2 value greater than the 
-specified value will be filtered out of the stairwayplot analysis. If you do not wish to filter your SNPs 
-simply do not include this key in the config.json.
+`mask_file` : `<class 'str'>` A string indicating the path to a bed formatted file with
+to be masked out of the analysis.
 
