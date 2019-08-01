@@ -35,4 +35,10 @@ cat msmc_makefile_stdpopsim_patch > msmc/Makefile && cd msmc && make
 cd ../../
 ```
 
+`smcsmc` can be [installed manually](https://github.com/luntergroup/smcsmc) or through `conda` on linux. 
+
+```sh
+conda install -c luntergroup smcsmc 
+```
+
 Further instructions can be currently found in each task directory

@@ -18,15 +18,16 @@ moment.
 
 ## Workflow
 
-The analysis includes three programs for predicting effective population 
+The analysis includes four programs for predicting effective population 
 size through time(`n_t`): 
 [msmc](https://github.com/stschiff/msmc/issues/23),
-[stairwayplot](https://sites.google.com/site/jpopgen/stairway-plot), and
+[stairwayplot](https://sites.google.com/site/jpopgen/stairway-plot), [smcsmc](https://github.com/luntergroup/smcsmc), and
 [smc++](https://github.com/popgenmethods/smcpp).
-There are four target rules that can be executed with the given parameters: 
+There are five target rules that can be executed with the given parameters: 
 `compound_msmc`,
 `compound_smcpp`,
 `compound_stairwayplot`, 
+`compound_smcsmc`,
 or you can run all three on the same simulated data with rule `all`.
 
 To run an analysis, create a directory (wherever you want)
@@ -37,18 +38,21 @@ might look like this:
 
 ```json
 {
-    "seed" : 12345,
-    "population_id" : 0,
-    "num_sampled_genomes_per_replicate" : 20,  
-    "num_sampled_genomes_msmc" : "2,8",
-    "num_msmc_iterations" : 20,
-    "replicates" : 10,
-    "species" : "homo_sapiens",
-    "model" : "GutenkunstThreePopOutOfAfrica",
-    "genetic_map" : "HapmapII_GRCh37",
-    "chrm_list" : "chr22,chrX",
-    "mask_file" : "masks/HapmapII_GRCh37.mask.bed",
+	"seed" : 12345,
+	"population_id" : 0,
+	"num_sampled_genomes_per_replicate" : 20,
+	"num_sampled_genomes_msmc" : "2 8",
+	"num_sampled_genomes_smcsmc" : "4",
+	"num_smcsmc_particles": 10000,
+	"num_msmc_iterations" : 20,
+	"num_smcsmc_iterations": 15,
+	"replicates" : 1,
+	"species" : "homo_sapiens",
+	"model" : "GutenkunstThreePopOutOfAfrica",
+	"genetic_map" : "HapmapII_GRCh37",
+	"chrm_list" : "chr22,chrX"	
 }
+
 ```
 
 Once you have creates a directory which contains the config file
