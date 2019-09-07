@@ -108,9 +108,10 @@ def run_smcpp_estimate(input_file, base, mutation_rate, ncores):
     to the file input_file.final.jason".
     """
     #InputFile = input_file
+    FileSplit = input_file.split(".")
     cmd = (
         f"smc++ estimate "
-        f"{mutation_rate} {input_file}")
+        f"--base {base} {mutation_rate} {input_file}")
     logging.info("Running:" + cmd)
     subprocess.run(cmd, shell=True, check=True)
     #InputFile = input_file + "pop2.smc.gz"
@@ -131,7 +132,7 @@ def run_smcpp_plot(input_file1, input_file2, output_file, generation_time):
     SplitFile = "/".join(SplitFile)
     WorkingDir = SplitFile
     SplitDir = SplitFile + "/split"
-    SplitFile = SplitFile + "/chr22.trees*.smc.gz"
+    SplitFile = SplitFile + "/*.smc.gz"
     print ("The split file is " + SplitFile)
     #logging.info("Running:" + cmd)
     cmd = (
@@ -198,8 +199,8 @@ def get_smcpp_runs (indir,seeds,outfile):
                                 PastTime = CurTime
                                 PastNe = CurNe
                         RowNumber = RowNumber + 1
-                    if EndFlag == 1:
-                        break
+                        if EndFlag == 1:
+                            break
             HarmonicMeanPop1 = DivTime/ HarmonicMeanPop1
             ofile.write(str(HarmonicMeanPop1) + "\t" + str(HarmonicMeanPop2) + "\t" + str(DivTime) + "\n")
 
