@@ -220,10 +220,10 @@ def plot_fsc_dadi_smcpp_results_drosophila_IM(dadi_infile,fsc_infile, outfile, s
     fsc['A-MIG21'] =fsc['MIG21']
 
     smcpp = pandas.read_csv(fsc_infile, skiprows=0, sep="\t")
-    smcpp['A-N1'] = fsc['HarmonicMeanPop1']
-    smcpp['A-N2'] = fsc['HarmonicMeanPop2']
+    smcpp['A-N1'] = smcpp['HarmonicMeanPop1']
+    smcpp['A-N2'] = smcpp['HarmonicMeanPop2']
     smcpp['A-Na'] = None
-    smcpp['A-TDIV'] = fsc['DivTime']
+    smcpp['A-TDIV'] = smcpp['DivTime']
 
 
     #create and plot data frame of pop size and t div estimates
