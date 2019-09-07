@@ -193,8 +193,9 @@ rule run_fsc:
     # I want to run this with a bash loop from 1..fit_runs to automate the number of fsc runs but for the life of me I cant get it to work in snakemake (it works fine in a shell script)
     # it keeps spitting out a python 'out of index' error and I've spent way too much time trying to troubleshoot it with no success
     # if someome can figure this out they would be my hero. Until that day, will continue to use this wall of bash code
-    run:
-            shell: "cd {output_dir}/{wildcards.seeds}/fsc_analysis/  && \
+    shell: "cd {output_dir}/{wildcards.seeds}/fsc_analysis/  && \
+              pwd  && \
+              echo \"CurDir\" && \
               mkdir run1 &&\
               cd run1 &&\
               cp ../{wildcards.demo_model}* ./ &&\
@@ -255,6 +256,9 @@ rule ts_to_smc:
     output: output_dir + "/{seeds}/{chrms}.treespop1.smc.gz", output_dir + "/{seeds}/{chrms}.treespop2.smc.gz"
     run: smc.write_smcpp_file_twopops(input[0])
 
+# expand(output_dir + "/{seeds}/{chrms}_dadi_joint_sfs.fs", seeds=seed_array, chrms=chrm_list)
+# inputs = expand(output_dir + "/{seeds}/{chrms}_dadi_joint_sfs.fs", seeds=wildcards.seeds, chrms=chrm_list)
+
 rule run_smcpp:
     input:
         expand(output_dir+ "/{seeds}/{chrms}.treespop1.smc.gz", chrms=chrm_list, seeds=seed_array),
@@ -269,24 +273,25 @@ rule run_smcpp:
         os.chdir(f"{output_dir}/{wildcards.seeds}")
         inputs = expand("{chrms}.treespop1.smc.gz", chrms=chrm_list)
         inputs = " ".join(inputs)
-        outputs = expand("model.final.pop1.json", chrms=chrm_list)
+        outputs = expand("model.{chrms}.final.pop1.json", chrms=chrm_list)
         outputs = " ".join(outputs)
         base = f"treespop1.smc.gz"
         cwd = os.getcwd()
         print ("I am here: " + cwd)
+        print ("Here are the inputs:" + inputs)
         # os.getcwd()
         # TODO get the rate here from stdpopsim
         smc.run_smcpp_estimate(inputs, base, mutation_rate=mutation_rate, ncores=threads)
-        copyfile("model.final.json", "model.final.pop1.json")
+        copyfile("treespop1.smc.gz.final.json", "model.final.pop1.json")
         inputs = expand("{chrms}.treespop2.smc.gz", chrms=chrm_list)
         inputs = " ".join(inputs)
-        outputs = expand("model.final.pop2.json", chrms=chrm_list)
+        outputs = expand("model.{chrms}.final.pop2.json", chrms=chrm_list)
         outputs = " ".join(inputs)
         base = f"treespop2.smc.gz"
         #os.getcwd()
         # TODO get the rate here from stdpopsim
         smc.run_smcpp_estimate(inputs, base, mutation_rate=mutation_rate, ncores=threads)
-        copyfile("model.final.json", "model.final.pop2.json")
+        copyfile("treespop2.smc.gz.final.json", "model.final.pop2.json")
         # need to cd out of subdir for snakemake sanity
         os.chdir(cur)
 
@@ -294,7 +299,7 @@ rule smcpp_plot:
     input:
         rules.run_smcpp.output
     output:
-        output_dir + "/{seeds}/trees.smc.gz.final.json.csv"
+        output_dir + "/{seeds}/trees.smc.gz.final.json.csv", output_dir + "/{seeds}/split/model.final.json", output_dir + "/{seeds}/split/joint.csv"
     run:
         # TODO get the generation time from std source
         smc.run_smcpp_plot(input[0], input[1], output[0], generation_time=generation_time)
@@ -318,7 +323,7 @@ rule compound_smcpp:
 
 rule get_dadi_fsc_output:
     input: expand(output_dir +  "/{seeds}/dadi_analysis/{demo_model}/model_params_{fit_seeds}.txt", fit_seeds=dadi_seed_array, seeds=seed_array, demo_model=demo_models_list),
-           expand(output_dir +  "/{seeds}/fsc_analysis/run1/{demo_model}/{demo_model}.bestlhoods",seeds=seed_array,demo_model=demo_models_list)
+           expand(output_dir +  "/{seeds}/fsc_analysis/run10/{demo_model}/{demo_model}.bestlhoods",seeds=seed_array,demo_model=demo_models_list)
 
     output: output_dir+"/{seeds}/dadi_analysis/dadi_results_sorted.txt",output_dir+"/{seeds}/fsc_analysis/fsc_results_sorted.txt"
 
