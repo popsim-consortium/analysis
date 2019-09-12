@@ -100,11 +100,13 @@ def plot_all_ne_estimates(sp_infiles, smcpp_infiles, msmc_infiles, outfile,
         ax[2+i].set_title(f"msmc, ({sample_size} samples)")
     plt.suptitle(f"{species}, population id {pop_id}", fontsize=16)
     for i in range(2+len(num_msmc)):
-        ax[i].set(xscale="log", yscale="log")
+        ax[i].set(xscale="log")
         ax[i].set_xlabel("time (years ago)")
     red_patch = mpatches.Patch(color='black', label='Coalescence rate derived Ne')
     ax[0].legend(frameon=False, fontsize=10, handles=[red_patch])
     ax[0].set_ylabel("population size")
+    # maxy, miny = ax[0].get_ylim()
+    # ax[0].set_yticks(np.arange(maxy, miny, 10))
     f.savefig(outfile, bbox_inches='tight', alpha=0.8)
 
 

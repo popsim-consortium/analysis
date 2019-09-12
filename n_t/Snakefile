@@ -69,8 +69,13 @@ model_class = getattr(species,config["model"])
 model = model_class()
 
 # The genetic map you would like to use.
-genetic_map_class = getattr(species,config["genetic_map"])
-genetic_map = genetic_map_class()
+# if value None is given default_recombination_rates are
+# used with a flat map
+if config["genetic_map"] == "None":
+	genetic_map = None
+else:
+	genetic_map_class = getattr(species,config["genetic_map"])
+	genetic_map = genetic_map_class()
 
 # The names of all chromosomes to simulate, separated by commas
 # Use "all" to simulate all chromsomes for the genome
@@ -104,16 +109,16 @@ except KeyError:
     mask_file = None
 
 # Run full pipeline!
-#rule all:
-#    input: output_dir + "/Results/all_estimated_Ne.pdf"
+rule all:
+   input: output_dir + "/Results/all_estimated_Ne.pdf"
 
 ## Run only the simulations!
 #rule all:
 #    input: expand(output_dir + "/Intermediate/{seeds}/{chrms}.trees", seeds=seed_array, chrms=chrm_list) 
 
 ## Run only stairwayplot and plot with coalescent rate!
-rule all:
-   input: output_dir + "/Results/stairwayplot.pdf"
+#rule all:
+#   input: output_dir + "/Results/stairwayplot.pdf"
 
 rule download_genetic_map:
     output: genetic_map_downloaded_flag
@@ -122,7 +127,7 @@ rule download_genetic_map:
         # We need to have this here to avoid several threads trying to download the 
         # the genetic map into the cache at the same time.
         #genetic_map = stdpopsim.homo_sapiens.HapmapII_GRCh37()
-        if not genetic_map.is_cached():
+        if genetic_map and not genetic_map.is_cached():
             genetic_map.download()
         with open(output[0], "w") as f:
             print("File to indicate genetic map has been downloaded", file=f)
@@ -197,10 +202,15 @@ rule plot_stairwayplot:
     output:
         output_dir + "/Results/stairwayplot.pdf"
     run:
+        steps=None
+        if config["model"] == "GenericConstantSize":
+            max_time = species.GenericConstantSize().default_population_size
+            max_time *= 2 # 4?
+            steps = np.linspace(1, max_time, max_time+1)
         plots.plot_stairwayplot_coalrate(input.f1, output[0],
                     model=model, n_samp=num_sampled_genomes_per_replicate,
                     generation_time=generation_time, species=config["species"],
-                    pop_id=population_id)
+                    pop_id=population_id, steps=steps)
 
 # ###############################################################################
 # SMC++
@@ -312,10 +322,15 @@ rule all_plot:
     output:
         output_dir + "/Results/all_estimated_Ne.pdf"
     run:
+        steps=None
+        if config["model"] == "GenericConstantSize":
+            max_time = species.GenericConstantSize().default_population_size
+            max_time *= 4 # 2?
+            steps = np.linspace(1, max_time, max_time+1)
         plots.plot_all_ne_estimates(input.f1, input.f2, input.f3, output[0],
                     model=model, n_samp=num_sampled_genomes_per_replicate,
                     generation_time=generation_time, species=config["species"],
-                    pop_id=population_id)
+                    pop_id=population_id, steps=steps)
 
 
 rule clean:
