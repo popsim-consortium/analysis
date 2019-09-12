@@ -80,7 +80,8 @@ else:
 # The names of all chromosomes to simulate, separated by commas
 # Use "all" to simulate all chromsomes for the genome
 chrm_list = [chrom for chrom in species.genome.chromosomes]
-chrm_list.remove("chrY")
+if "chrY" in chrm_list:
+    chrm_list.remove("chrY")
 if(config["chrm_list"] != "all"):
     chrm_list = [chr for chr in config["chrm_list"].split(",")]
 
