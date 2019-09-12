@@ -1,4 +1,4 @@
-msprime=0.7.0
+msprime=0.7.3
 scikit-allel
 snakemake
 setuptools
