@@ -3,12 +3,13 @@ import os
 import numpy as np
 
 inDir = sys.argv[1]
-
+print(inDir)
 ratesInWins = {}
 for fileName in os.listdir(inDir):
     if fileName.endswith(".txt"):
+        print(fileName)
         with open(inDir + "/" + fileName, "rt") as f:
-            # sys.stderr.write("reading {}/{}\n".format(inDir, fileName))
+            sys.stderr.write("reading {}/{}\n".format(inDir, fileName))
             first = True
             for line in f:
                 if first:
@@ -75,7 +76,7 @@ for chrom in ratesInWins:
             if recRate <= rateCutoff:
                 runLen += 1
             else:
-                if winEnd-runStart >= lenCutoff:
+                if winStart-runStart >= lenCutoff:
                     print(chrom, runStart, winStart, winStart-runStart, runLen)
                 mode = 1
     if mode == 0:
