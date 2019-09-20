@@ -109,9 +109,10 @@ def run_smcpp_estimate(input_file, base, mutation_rate, ncores):
     """
     #InputFile = input_file
     FileSplit = input_file.split(".")
+    OutputFile = base + ".final.json"
     cmd = (
         f"smc++ estimate "
-        f"--base {base} {mutation_rate} {input_file}")
+        f"-o {OutputFile} {mutation_rate} {input_file}")
     logging.info("Running:" + cmd)
     subprocess.run(cmd, shell=True, check=True)
     #InputFile = input_file + "pop2.smc.gz"

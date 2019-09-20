@@ -282,7 +282,7 @@ rule run_smcpp:
         # os.getcwd()
         # TODO get the rate here from stdpopsim
         smc.run_smcpp_estimate(inputs, base, mutation_rate=mutation_rate, ncores=threads)
-        copyfile("treespop1.smc.gz.final.json", "model.final.pop1.json")
+        copyfile("treespop1.smc.gz.final.json/model.final.json", "model.final.pop1.json")
         inputs = expand("{chrms}.treespop2.smc.gz", chrms=chrm_list)
         inputs = " ".join(inputs)
         outputs = expand("model.{chrms}.final.pop2.json", chrms=chrm_list)
@@ -291,7 +291,7 @@ rule run_smcpp:
         #os.getcwd()
         # TODO get the rate here from stdpopsim
         smc.run_smcpp_estimate(inputs, base, mutation_rate=mutation_rate, ncores=threads)
-        copyfile("treespop2.smc.gz.final.json", "model.final.pop2.json")
+        copyfile("treespop2.smc.gz.final.json/model.final.json", "model.final.pop2.json")
         # need to cd out of subdir for snakemake sanity
         os.chdir(cur)
 
