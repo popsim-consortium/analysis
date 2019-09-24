@@ -32,14 +32,15 @@ def write_smcpp_file(path):
     subprocess.run(cmd, shell=True, check=True)
 
 
-def write_smcpp_file_twopops(path):
+def write_smcpp_file_twopops(path, mask_file=None):
     """
     Writes a smcpp input file given a treesequence
     """
     ts = tskit.load(path)
+    chr_name = path.split(".")[0].split("/")[-1]
     # write a vcf intermediate input
     with open(path+".vcf", "w") as vcf_file:
-        ts.write_vcf(vcf_file, 2)
+        ts.write_vcf(vcf_file, 2, contig_id=chr_name)
     # index the vcf
     # cmd = f"head -n100000 {path}.vcf > {path}small.vcf"
     # subprocess.run(cmd, shell=True, check=True)
@@ -54,21 +55,54 @@ def write_smcpp_file_twopops(path):
     subprocess.run(cmd, shell=True, check=True)
     # run smc++ for vcf conversion
     smc_file = f"{path}pop1.smc.gz"
-    cmd = f"smc++ vcf2smc {vz_file} {smc_file} 1 pop1:"
+    if mask_file:
+        inter_mask_path = f"{path}.mask.gz"
+        cmd = f"cat {mask_file} | bgzip > {inter_mask_path}"
+        logging.info("Running:" + cmd)
+        subprocess.run(cmd, shell=True, check=True)
+        cmd = f"tabix -p bed {inter_mask_path}"
+        logging.info("Running:" + cmd)
+        subprocess.run(cmd, shell=True, check=True)
+        cmd = f"smc++ vcf2smc --mask {inter_mask_path} {vz_file} "
+        cmd = cmd + f"{smc_file} {chr_name} pop1:"
+    else:
+        cmd = f"smc++ vcf2smc {vz_file} {smc_file} {chr_name} pop1:"
     for n in range(ts.num_samples // 4):
         cmd = cmd + f"msp_{n},"
     cmd = cmd[0:-1]
     logging.info("Running:" + cmd)
     subprocess.run(cmd, shell=True, check=True)
     smc_file = f"{path}pop2.smc.gz"
-    cmd = f"smc++ vcf2smc {vz_file} {smc_file} 1 pop2:"
+    if mask_file:
+        inter_mask_path = f"{path}.mask.gz"
+        cmd = f"cat {mask_file} | bgzip > {inter_mask_path}"
+        logging.info("Running:" + cmd)
+        subprocess.run(cmd, shell=True, check=True)
+        cmd = f"tabix -p bed {inter_mask_path}"
+        logging.info("Running:" + cmd)
+        subprocess.run(cmd, shell=True, check=True)
+        cmd = f"smc++ vcf2smc --mask {inter_mask_path} {vz_file} "
+        cmd = cmd + f"{smc_file} {chr_name} pop1:"
+    else:
+        cmd = f"smc++ vcf2smc {vz_file} {smc_file} {chr_name} pop2:"
     for n in range(ts.num_samples // 4, ts.num_samples // 2):
        cmd = cmd + f"msp_{n},"
     cmd = cmd[0:-1]
     logging.info("Running:" + cmd)
     subprocess.run(cmd, shell=True, check=True)
     smc_file = f"{path}pop12.smc.gz"
-    cmd = f"smc++ vcf2smc {vz_file} {smc_file} 1 pop1:"
+    if mask_file:
+        inter_mask_path = f"{path}.mask.gz"
+        cmd = f"cat {mask_file} | bgzip > {inter_mask_path}"
+        logging.info("Running:" + cmd)
+        subprocess.run(cmd, shell=True, check=True)
+        cmd = f"tabix -p bed {inter_mask_path}"
+        logging.info("Running:" + cmd)
+        subprocess.run(cmd, shell=True, check=True)
+        cmd = f"smc++ vcf2smc --mask {inter_mask_path} {vz_file} "
+        cmd = cmd + f"{smc_file} {chr_name} pop1:"
+    else:
+        cmd = f"smc++ vcf2smc {vz_file} {smc_file} {chr_name} pop1:"
     for n in range(ts.num_samples // 4):
         cmd = cmd + f"msp_{n},"
     cmd = cmd[0:-1]
@@ -79,7 +113,18 @@ def write_smcpp_file_twopops(path):
     logging.info("Running:" + cmd)
     subprocess.run(cmd, shell=True, check=True)
     smc_file = f"{path}pop21.smc.gz"
-    cmd = f"smc++ vcf2smc {vz_file} {smc_file} 1 pop2:"
+    if mask_file:
+        inter_mask_path = f"{path}.mask.gz"
+        cmd = f"cat {mask_file} | bgzip > {inter_mask_path}"
+        logging.info("Running:" + cmd)
+        subprocess.run(cmd, shell=True, check=True)
+        cmd = f"tabix -p bed {inter_mask_path}"
+        logging.info("Running:" + cmd)
+        subprocess.run(cmd, shell=True, check=True)
+        cmd = f"smc++ vcf2smc --mask {inter_mask_path} {vz_file} "
+        cmd = cmd + f"{smc_file} {chr_name} pop1:"
+    else:
+        cmd = f"smc++ vcf2smc {vz_file} {smc_file} {chr_name} pop2:"
     for n in range(ts.num_samples // 4, ts.num_samples // 2):
         cmd = cmd + f"msp_{n},"
     cmd = cmd[0:-1]
