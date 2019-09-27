@@ -85,6 +85,12 @@ seed_array = np.random.random_integers(1,2**31,replicates)
 dadi_seed_array = np.random.randint(0, 4294967295 + 1, fit_runs)
 genetic_map_downloaded_flag= ".genetic_map_downloaded"
 
+try:
+   mask_file = config["mask_file"]
+except KeyError:
+   mask_file = None
+
+
 rule all:
     input: output_dir + "/estimates_N_tdiv_dadi_fsc.png", output_dir + "/estimates_mig_dadi_fsc.png", output_dir + "/Results/smcpp_estimated_Ne.png"
 
@@ -254,7 +260,7 @@ rule ts_to_smc:
     input:rules.simulation.output
     message: "Here?"
     output: output_dir + "/{seeds}/{chrms}.treespop1.smc.gz", output_dir + "/{seeds}/{chrms}.treespop2.smc.gz"
-    run: smc.write_smcpp_file_twopops(input[0])
+    run: smc.write_smcpp_file_twopops(input[0], mask_file=mask_file)
 
 # expand(output_dir + "/{seeds}/{chrms}_dadi_joint_sfs.fs", seeds=seed_array, chrms=chrm_list)
 # inputs = expand(output_dir + "/{seeds}/{chrms}_dadi_joint_sfs.fs", seeds=wildcards.seeds, chrms=chrm_list)
