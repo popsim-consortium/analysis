@@ -2,29 +2,18 @@
 import allel
 import numpy as np
 import msprime
-from stdpopsim import homo_sapiens
+import stdpopsim
 import dadi
 import os
 import matplotlib.pyplot as plt
 import random
 
-def msprime_to_dadi_simulation_OutOfAfrica(path, seed, chrom, sample_size=20):
+def msprime_to_dadi_simulation_OutOfAfrica(ts_path, dadi_path):
 	'''
 	Generate however many different SFS with msprime and convert+save them into SFS for dadi to use.
 	'''
-	#For testing
-	# print(path, seed, chrom, sample_size)
-	chrom = homo_sapiens.genome.chromosomes[chrom]
-	model = homo_sapiens.GutenkunstThreePopOutOfAfrica()
-
-	samples_pops_joint = [msprime.Sample(population=0, time=0)] * sample_size + [msprime.Sample(population=1, time=0)] * sample_size
-	ts_pops_joint = msprime.simulate(
-		samples=samples_pops_joint,
-		recombination_map=chrom.recombination_map(),
-		mutation_rate=chrom.default_mutation_rate,
-		random_seed=seed,
-		**model.asdict())
-	haps_pops_joint = np.array(ts_pops_joint.genotype_matrix())
+	ts_pops_joint = tskit.load(ts_path)
+	haps_pops_joint = ts_pops_joint.genotype_matrix()
 
 	#Break up the haplotypes into seperate populations based on sample_size
 	haps_pop0_joint = haps_pops_joint[:,:sample_size]
@@ -38,7 +27,7 @@ def msprime_to_dadi_simulation_OutOfAfrica(path, seed, chrom, sample_size=20):
 	sfs_joint = allel.joint_sfs(allele_counts_pop0_joint[:,1], allele_counts_pop1_joint[:,1])
 	sfs_joint = dadi.Spectrum(sfs_joint)
 
-	sfs_joint.to_file(path)
+	sfs_joint.to_file(dadi_path)
 
 
 def OoA_func(params, ns, pts):
@@ -77,7 +66,7 @@ def compare_msprime_dadi_OutOfAfrica(input_fids, output_path):
 	OoA_model = OoA_extrap_func(OoA_popt, OoA_ns, OoA_pts_l)
 	OoA_model = OoA_model.marginalize([2])
 
-	msprime_joint_sfs = dadi.Spectrum([[0]*21]*21) 
+	msprime_joint_sfs = dadi.Spectrum([[0]*21]*21)
 
 	for fid in input_fids:
 		msprime_joint_sfs_temp = dadi.Spectrum.from_file(fid)
@@ -92,7 +81,7 @@ def compare_msprime_dadi_OutOfAfrica(input_fids, output_path):
 def fit_dadi_model(sfs_files,output_pdf_name,output_text_name,demo_model,fit_seed):
 	np.random.seed(int(fit_seed))
 
-	msprime_joint_sfs = dadi.Spectrum([[0]*21]*21) 
+	msprime_joint_sfs = dadi.Spectrum([[0]*21]*21)
 
 	for fid in sfs_files:
 		msprime_joint_sfs += dadi.Spectrum.from_file(fid)
@@ -132,7 +121,7 @@ def fit_dadi_model(sfs_files,output_pdf_name,output_text_name,demo_model,fit_see
 
 	p_guess = dadi.Misc.perturb_params(params, lower_bound=lower_bound, upper_bound=upper_bound)
 
-	popt = dadi.Inference.optimize(p_guess, msprime_joint_sfs, extrap_function, pts_l, multinom=True, verbose = True, 
+	popt = dadi.Inference.optimize(p_guess, msprime_joint_sfs, extrap_function, pts_l, multinom=True, verbose = True,
 					lower_bound=lower_bound, upper_bound=upper_bound,
 					fixed_params=fixed,
 					maxiter=2)

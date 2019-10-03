@@ -40,13 +40,22 @@ rule download_genetic_map:
         with open(output[0], "w") as f:
             print("File to indicate genetic map has been downloaded", file=f)
 
-rule simulate_to_dadi_sfs_OutOfAfrica:
+rule simulate:
+    output:
+        "simulated_data/homo_sapiens_OutOfAfrica/msprime_{sim_seeds}_{chrms}.trees"
+    threads: 2
+    # TODO add seed argument.
+    shell: "stdpopsim homsap -g HapmapII_GRCh37 -c {wildcards.chrms} -m ooa_3 20 20 {output[0]}"
+
+rule trees_to_dadi_sfs_OutOfAfrica:
+    input:
+        "simulated_data/homo_sapiens_OutOfAfrica/msprime_{sim_seeds}_{chrms}.trees"
     output:
         "simulated_data/homo_sapiens_OutOfAfrica/msprime_joint_sfs_{sim_seeds}_{chrms}.fs"
     # TODO get simulation parameters from stdpopsim, so we can share them easily 
     # with anlysis code below?
     threads: 2
-    run: dadi_utils.msprime_to_dadi_simulation_OutOfAfrica(output[0], wildcards.sim_seeds, wildcards.chrms)
+    run: dadi_utils.msprime_to_dadi_simulation_OutOfAfrica(input[0], output[0])
 
 sfs_files = expand("simulated_data/homo_sapiens_OutOfAfrica/msprime_joint_sfs_{sim_seeds}_{chrms}.fs",
             sim_seeds=seed_array, chrms=chrm_list)
