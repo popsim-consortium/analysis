@@ -2,15 +2,15 @@
 Code for generating plots.
 """
 import pandas
-import seaborn as sns
-import matplotlib
 import msprime
 import os
+import matplotlib
+#Force matplotlib to not use any Xwindows backend.
+matplotlib.use('Agg')
 import matplotlib.patches as mpatches
 from matplotlib import pyplot as plt
 import numpy as np
-# Force matplotlib to not use any Xwindows backend.
-matplotlib.use('Agg')
+import seaborn as sns
 
 sns.set_style("darkgrid")
 
