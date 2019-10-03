@@ -39,7 +39,7 @@ def write_smcpp_file(path, mask_file=None):
         cmd = f"smc++ vcf2smc {vz_file} {smc_file} {chr_name} pop1:"
 
     for n in range(ts.num_samples // 2):
-        cmd = cmd + f"msp_{n},"
+        cmd = cmd + f"tsk_{n},"
     cmd = cmd[0:-1]
     logging.info("Running:" + cmd)
     subprocess.run(cmd, shell=True, check=True)

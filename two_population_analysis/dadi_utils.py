@@ -1,7 +1,7 @@
 
 import allel
 import numpy as np
-import msprime
+import tskit
 import stdpopsim
 import dadi
 import os
@@ -13,9 +13,12 @@ def msprime_to_dadi_simulation_OutOfAfrica(ts_path, dadi_path):
 	Generate however many different SFS with msprime and convert+save them into SFS for dadi to use.
 	'''
 	ts_pops_joint = tskit.load(ts_path)
+	# We're assuming here that the sample size in both populations is equal.
+	sample_size = len(ts_pops_joint.samples(population=0))
 	haps_pops_joint = ts_pops_joint.genotype_matrix()
 
-	#Break up the haplotypes into seperate populations based on sample_size
+	# Break up the haplotypes into seperate populations based on sample_size
+	# TODO this can be refactored to use tskit's AFS methods
 	haps_pop0_joint = haps_pops_joint[:,:sample_size]
 	haps_pop1_joint = haps_pops_joint[:,sample_size:]
 

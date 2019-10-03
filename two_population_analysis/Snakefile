@@ -44,8 +44,9 @@ rule simulate:
     output:
         "simulated_data/homo_sapiens_OutOfAfrica/msprime_{sim_seeds}_{chrms}.trees"
     threads: 2
-    # TODO add seed argument.
-    shell: "stdpopsim homsap -g HapmapII_GRCh37 -c {wildcards.chrms} -m ooa_3 20 20 {output[0]}"
+    shell: 
+        "stdpopsim homsap -g HapmapII_GRCh37 -c {wildcards.chrms} --seed={wildcards.sim_seeds} "
+        "-m ooa_3 20 20 {output[0]}"
 
 rule trees_to_dadi_sfs_OutOfAfrica:
     input:

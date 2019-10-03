@@ -22,7 +22,6 @@ import stdpopsim
 import stairway
 import smc
 import msmc
-import simulations
 import plots
 
 
@@ -138,9 +137,7 @@ rule simulation:
     run:
         contig = species.get_contig(wildcards.chrms, genetic_map=genetic_map_id)
         samples = model.get_samples(*num_samples_per_population)
-        # TODO need to add seeds argument to model.run
-        # seed=wildcards.seeds
-        ts = model.run(contig, samples)
+        ts = model.simulate(contig, samples, seed=wildcards.seeds)
         ts.dump(output[0])
 
 
