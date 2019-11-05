@@ -12,8 +12,6 @@ import pandas as pd
 
 
 
-
-
 def ts_to_dadi_sfs(ts_path,out_path,out_path_nonvariant, sample_size=20, mask_file=None):
 	'''
 	Generate however many different SFS with msprime and convert+save them into SFS for dadi to use.
@@ -104,6 +102,7 @@ def compare_msprime_dadi_OutOfAfrica(input_fids, output_path, sample_size=20):
 
 	msprime_joint_sfs = dadi.Spectrum([[0]*(sample_size+1)]*(sample_size+1))
 
+
 	for fid in input_fids:
 		msprime_joint_sfs_temp = dadi.Spectrum.from_file(fid)
 		msprime_joint_sfs += msprime_joint_sfs_temp
@@ -140,6 +139,7 @@ def fit_dadi_model(sfs_files,output_pdf_name,output_text_name,demo_model,fit_see
 	np.random.seed(int(fit_seed))
 
 	msprime_joint_sfs = dadi.Spectrum([[0]*(sample_size+1)]*(sample_size+1))
+
 
 	for fid in sfs_files:
 		msprime_joint_sfs += dadi.Spectrum.from_file(fid)
@@ -216,7 +216,6 @@ def fit_dadi_model(sfs_files,output_pdf_name,output_text_name,demo_model,fit_see
 	fig.clear()
 	dadi.Plotting.plot_2d_comp_multinom(model, msprime_joint_sfs, vmin=1, show=False)
 	fig.savefig(output_pdf_name)
-
 
 
 def get_dadi_output_IM(indir,model,dadi_seeds,ofile):
