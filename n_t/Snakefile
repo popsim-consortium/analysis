@@ -22,7 +22,6 @@ import stdpopsim
 import stairway
 import smc
 import msmc
-import simulations
 import plots
 
 
@@ -38,13 +37,9 @@ configfile: config["config"]+"/config.json"
 
 np.random.seed(config["seed"])
 
-# TODO This should end up being a list 
-# so that we may sample from multiple populations.
-# doing this may be a little tricky for msmc sub-sampling?
-population_id = config["population_id"]
-
-# This is the number of samples to simulate for each analysis
-num_sampled_genomes_per_replicate = config["num_sampled_genomes_per_replicate"]
+# This is the number of samples to simulate for within each population
+# for each replicate
+num_samples_per_population = config["num_samples_per_population"]
 
 # Here is a list of sample sizes to run msmc on. 
 # Each element counts as its own analysis
@@ -62,20 +57,15 @@ replicates = config["replicates"]
 output_dir = os.path.abspath(config["config"])
 
 # The analysis species
-species = getattr(stdpopsim,config["species"])
+species = stdpopsim.get_species(config["species"])
 
 # The specific model you would like to run
-model_class = getattr(species,config["model"])
-model = model_class()
+model = species.get_model(config["model"])
 
 # The genetic map you would like to use.
 # if value None is given default_recombination_rates are
 # used with a flat map
-if config["genetic_map"] == "None":
-	genetic_map = None
-else:
-	genetic_map_class = getattr(species,config["genetic_map"])
-	genetic_map = genetic_map_class()
+genetic_map_id = config.get("genetic_map", None)
 
 # The names of all chromosomes to simulate, separated by commas
 # Use "all" to simulate all chromsomes for the genome
@@ -127,11 +117,12 @@ rule download_genetic_map:
     run:
         # We need to have this here to avoid several threads trying to download the 
         # the genetic map into the cache at the same time.
-        #genetic_map = stdpopsim.homo_sapiens.HapmapII_GRCh37()
-        if genetic_map and not genetic_map.is_cached():
-            genetic_map.download()
-        with open(output[0], "w") as f:
-            print("File to indicate genetic map has been downloaded", file=f)
+        if genetic_map_id is not None:
+            genetic_map = species.get_genetic_map(genetic_map_id)
+            if not genetic_map.is_cached():
+                genetic_map.download()
+            with open(output[0], "w") as f:
+                print("File to indicate genetic map has been downloaded", file=f)
 
 
 rule simulation:
@@ -144,11 +135,11 @@ rule simulation:
     # with anlysis code below?
     threads: 1 
     run:
-        simulations.simulate(
-            out_path = output[0], species = species, model = model,
-            genetic_map = genetic_map, seed = wildcards.seeds, 
-            chrmStr = wildcards.chrms, sample_size = num_sampled_genomes_per_replicate,
-            population = population_id)
+        contig = species.get_contig(wildcards.chrms, genetic_map=genetic_map_id)
+        samples = model.get_samples(*num_samples_per_population)
+        ts = model.simulate(contig, samples, seed=wildcards.seeds)
+        ts.dump(output[0])
+
 
 
 # ###############################################################################
