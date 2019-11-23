@@ -14,14 +14,13 @@ import tskit
 import pandas as pd
 import smc
 from shutil import copyfile
+from stdpopsim import models
 
 
 # ###############################################################################
 # KNOBS -
 # ###############################################################################
 
-# A seed to replicate results
-# TODO mutation rates
 
 configfile: config["config"]+"/config.json"
 
@@ -98,7 +97,7 @@ except KeyError:
     mask_file = None
 
 rule all:
-    input: output_dir + "/estimates_N_tdiv_dadi_fsc_smcpp.png", output_dir + "/estimates_mig_dadi_fsc.png", output_dir + "/smcpp_estimated_Ne.png"
+    input: output_dir + "/Results/estimates_N_tdiv_dadi_fsc_smcpp.png", output_dir + "/Results/estimates_mig_dadi_fsc.png", output_dir + "/Results/smcpp_estimated_Ne.png"
 
 
 rule download_genetic_map:
@@ -119,7 +118,7 @@ rule simulation:
         genetic_map_downloaded_flag,
 
     output:
-        output_dir + "/{seeds}/{chrms}.trees"
+        output_dir + "/Intermediate/{seeds}/{chrms}.trees"
 
     run:
         contig = species.get_contig(wildcards.chrms, genetic_map=genetic_map_id)
@@ -140,8 +139,8 @@ rule simulation:
 
 rule ts_to_dadi_sfs:
     input:rules.simulation.output
-    output: output_dir + "/{seeds}/{chrms}_dadi_joint_sfs.fs",
-            output_dir + "/{seeds}/{chrms}_dadi_joint_sfs_with_nonvariant.fs"
+    output: output_dir + "/Intermediate/{seeds}/{chrms}_dadi_joint_sfs.fs",
+            output_dir + "/Intermediate/{seeds}/{chrms}_dadi_joint_sfs_with_nonvariant.fs"
     # TODO get simulation parameters from stdpopsim, so we can share them easily
     # with anlysis code below?
     threads: 2
@@ -152,22 +151,22 @@ rule ts_to_dadi_sfs:
 
 
 rule compare_msprime_sfs_to_OutOfAfrica_model:
-    input: expand(output_dir + "/{seeds}/{chrms}_dadi_joint_sfs.fs", seeds=seed_array, chrms=chrm_list)
+    input: expand(output_dir + "/Intermediate/{seeds}/{chrms}_dadi_joint_sfs.fs", seeds=seed_array, chrms=chrm_list)
 
-    output: output_dir +  "/{seeds}/dadi_analysis/compare_dadi_to_int_sfs_resid_range_50.pdf"
+    output: output_dir +  "/Intermediate/{seeds}/dadi_analysis/compare_dadi_to_int_sfs_resid_range_50.pdf"
     run:
-        inputs = expand(output_dir + "/{seeds}/{chrms}_dadi_joint_sfs.fs", seeds=wildcards.seeds, chrms=chrm_list)
+        inputs = expand(output_dir + "/Intermediate/{seeds}/{chrms}_dadi_joint_sfs.fs", seeds=wildcards.seeds, chrms=chrm_list)
         dadi_utils.compare_msprime_dadi_OutOfAfrica(inputs,output[0],num_sampled_genomes_per_replicate)
 
 rule fit_dadi_model_to_msprime_sfs:
-    input: expand(output_dir + "/{seeds}/{chrms}_dadi_joint_sfs.fs", seeds=seed_array, chrms=chrm_list)
+    input: expand(output_dir + "/Intermediate/{seeds}/{chrms}_dadi_joint_sfs.fs", seeds=seed_array, chrms=chrm_list)
     output:
-        output_dir +  "/{seeds}/dadi_analysis/{demo_models}/model_fit_{fit_seeds}.pdf",
-        output_dir +  "/{seeds}/dadi_analysis/{demo_models}/model_params_{fit_seeds}.txt"
+        output_dir +  "/Intermediate/{seeds}/dadi_analysis/{demo_models}/model_fit_{fit_seeds}.pdf",
+        output_dir +  "/Intermediate/{seeds}/dadi_analysis/{demo_models}/model_params_{fit_seeds}.txt"
 
     threads: 4
     run:
-        inputs = expand(output_dir + "/{seeds}/{chrms}_dadi_joint_sfs.fs", seeds=wildcards.seeds, chrms=chrm_list)
+        inputs = expand(output_dir + "/Intermediate/{seeds}/{chrms}_dadi_joint_sfs.fs", seeds=wildcards.seeds, chrms=chrm_list)
         dadi_utils.fit_dadi_model(inputs,output[0],output[1],wildcards.demo_models, wildcards.fit_seeds,num_sampled_genomes_per_replicate)
 
 
@@ -179,88 +178,89 @@ rule fit_dadi_model_to_msprime_sfs:
 
 rule dadi_sfs_to_fsc:
     # TODO: replace "IM" in the paths below with {demo_models}
-    input: expand(output_dir + "/{seeds}/{chrms}_dadi_joint_sfs_with_nonvariant.fs", chrms=chrm_list,seeds=seed_array)
+    input: expand(output_dir + "/Intermediate/{seeds}/{chrms}_dadi_joint_sfs_with_nonvariant.fs", chrms=chrm_list,seeds=seed_array)
 
-    output: output_dir + "/{seeds}/fsc_analysis/{demo_model}_jointDAFpop1_0.obs"
+    output: output_dir + "/Intermediate/{seeds}/fsc_analysis/{demo_model}_jointDAFpop1_0.obs"
 
     threads: 2
     run:
-        inputs = expand(output_dir + "/{seeds}/{chrms}_dadi_joint_sfs_with_nonvariant.fs", chrms=chrm_list,seeds=wildcards.seeds)
-        dadi_out_path = output_dir + "/" + wildcards.seeds + "/all_chrm_dadi_joint_sfs_with_nonvariant.fs"
-        fsc_out_path  = output_dir + "/" + wildcards.seeds + "/fsc_analysis/"+wildcards.demo_model+"_jointDAFpop1_0.obs"
+        inputs = expand(output_dir + "/Intermediate/{seeds}/{chrms}_dadi_joint_sfs_with_nonvariant.fs", chrms=chrm_list,seeds=wildcards.seeds)
+        dadi_out_path = output_dir + "/Intermediate/" + wildcards.seeds + "/all_chrm_dadi_joint_sfs_with_nonvariant.fs"
+        fsc_out_path  = output_dir + "/Intermediate/" + wildcards.seeds + "/fsc_analysis/"+wildcards.demo_model+"_jointDAFpop1_0.obs"
         fastsimcoal.dadi_to_fsc_sfs(inputs, dadi_out_path, fsc_out_path, sample_size=num_sampled_genomes_per_replicate)
 
 
 rule fsc_setup:
-    input: expand(output_dir + "/{seeds}/fsc_analysis/{demo_model}_jointDAFpop1_0.obs", seeds=seed_array,demo_model=fsc_model)
+    input: expand(output_dir + "/Intermediate/{seeds}/fsc_analysis/{demo_model}_jointDAFpop1_0.obs", seeds=seed_array,demo_model=fsc_model)
 
-    output: output_dir + "/{seeds}/fsc_analysis/{demo_model}.est",
-            output_dir + "/{seeds}/fsc_analysis/{demo_model}.tpl"
+    output: output_dir + "/Intermediate/{seeds}/fsc_analysis/{demo_model}.est",
+            output_dir + "/Intermediate/{seeds}/fsc_analysis/{demo_model}.tpl"
 #            sed -i '' 's/SAMPLE_SIZE/{num_sampled_genomes_per_replicate}/g' {output_dir}/{wildcards.seeds}/fsc_analysis/IM.tpl &&\
 
-    shell: "cp fsc_files/{wildcards.demo_model}.est {output_dir}/{wildcards.seeds}/fsc_analysis/{wildcards.demo_model}.est && \
-            cp fsc_files/{wildcards.demo_model}.tpl {output_dir}/{wildcards.seeds}/fsc_analysis/{wildcards.demo_model}.tpl && \
-            sed -i.bak 's/SAMPLE_SIZE/{num_sampled_genomes_per_replicate}/' {output_dir}/{wildcards.seeds}/fsc_analysis/{wildcards.demo_model}.tpl && rm {output_dir}/{wildcards.seeds}/fsc_analysis/{wildcards.demo_model}.tpl.bak"
+    shell: "cp fsc_files/{wildcards.demo_model}.est {output_dir}/Intermediate/{wildcards.seeds}/fsc_analysis/{wildcards.demo_model}.est && \
+            cp fsc_files/{wildcards.demo_model}.tpl {output_dir}/Intermediate/{wildcards.seeds}/fsc_analysis/{wildcards.demo_model}.tpl && \
+            sed -i.bak 's/SAMPLE_SIZE/{num_sampled_genomes_per_replicate}/' {output_dir}/Intermediate/{wildcards.seeds}/fsc_analysis/{wildcards.demo_model}.tpl && rm {output_dir}/Intermediate/{wildcards.seeds}/fsc_analysis/{wildcards.demo_model}.tpl.bak &&\
+            cd fsc26/ && chmod +x fsc26"
 
 
 rule run_fsc:
-    input: expand(output_dir + "/{seeds}/fsc_analysis/{demo_model}.tpl", seeds=seed_array,demo_model=fsc_model)
+    input: expand(output_dir + "/Intermediate/{seeds}/fsc_analysis/{demo_model}.tpl", seeds=seed_array,demo_model=fsc_model)
 
-    output: output_dir + "/{seeds}/fsc_analysis/run10/{demo_model}/{demo_model}.bestlhoods"
-
+    output: output_dir + "/Intermediate/{seeds}/fsc_analysis/run10/{demo_model}/{demo_model}.bestlhoods"
+    threads: 4
 
     # I want to run this with a bash loop from 1..fit_runs to automate the number of fsc runs but for the life of me I cant get it to work in snakemake (it works fine in a shell script)
     # it keeps spitting out a python 'out of index' error and I've spent way too much time trying to troubleshoot it with no success
     # if someome can figure this out they would be my hero. Until that day, will continue to use this wall of bash code
-    shell: "cd {output_dir}/{wildcards.seeds}/fsc_analysis/  && \
+    shell: "cd {output_dir}/Intermediate/{wildcards.seeds}/fsc_analysis/  && \
               mkdir run1 &&\
               cd run1 &&\
               cp ../{wildcards.demo_model}* ./ &&\
-              ../../../../fsc26/fsc26 fsc26 -t {wildcards.demo_model}.tpl -n 100000 -d -e {wildcards.demo_model}.est -M -L 40 -q &&\
+              ../../../../../fsc26/fsc26 fsc26 -t {wildcards.demo_model}.tpl -n 100000 -d -e {wildcards.demo_model}.est -M -L 40 -q -c 4 &&\
               cd .. &&\
               mkdir run2 &&\
               cd run2 &&\
               cp ../{wildcards.demo_model}* ./ &&\
-              ../../../../fsc26/fsc26 fsc26 -t {wildcards.demo_model}.tpl -n 100000 -d -e {wildcards.demo_model}.est -M -L 40 -q &&\
+              ../../../../../fsc26/fsc26 fsc26 -t {wildcards.demo_model}.tpl -n 100000 -d -e {wildcards.demo_model}.est -M -L 40 -q -c 4 &&\
               cd .. &&\
               mkdir run3 &&\
               cd run3 &&\
               cp ../{wildcards.demo_model}* ./ &&\
-              ../../../../fsc26/fsc26 fsc26 -t {wildcards.demo_model}.tpl -n 100000 -d -e {wildcards.demo_model}.est -M -L 40 -q &&\
+              ../../../../../fsc26/fsc26 fsc26 -t {wildcards.demo_model}.tpl -n 100000 -d -e {wildcards.demo_model}.est -M -L 40 -q -c 4 &&\
               cd .. &&\
               mkdir run4 &&\
               cd run4 &&\
               cp ../{wildcards.demo_model}* ./ &&\
-              ../../../../fsc26/fsc26 fsc26 -t {wildcards.demo_model}.tpl -n 100000 -d -e {wildcards.demo_model}.est -M -L 40 -q &&\
+              ../../../../../fsc26/fsc26 fsc26 -t {wildcards.demo_model}.tpl -n 100000 -d -e {wildcards.demo_model}.est -M -L 40 -q -c 4 &&\
               cd .. &&\
               mkdir run5 &&\
               cd run5 &&\
               cp ../{wildcards.demo_model}* ./ &&\
-              ../../../../fsc26/fsc26 fsc26 -t {wildcards.demo_model}.tpl -n 100000 -d -e {wildcards.demo_model}.est -M -L 40 -q &&\
+              ../../../../../fsc26/fsc26 fsc26 -t {wildcards.demo_model}.tpl -n 100000 -d -e {wildcards.demo_model}.est -M -L 40 -q -c 4 &&\
               cd .. &&\
               mkdir run6 &&\
               cd run6 &&\
               cp ../{wildcards.demo_model}* ./ &&\
-              ../../../../fsc26/fsc26 fsc26 -t {wildcards.demo_model}.tpl -n 100000 -d -e {wildcards.demo_model}.est -M -L 40 -q &&\
+              ../../../../../fsc26/fsc26 fsc26 -t {wildcards.demo_model}.tpl -n 100000 -d -e {wildcards.demo_model}.est -M -L 40 -q -c 4 &&\
               cd .. &&\
               mkdir run7 &&\
               cd run7 &&\
               cp ../{wildcards.demo_model}* ./ &&\
-              ../../../../fsc26/fsc26 fsc26 -t {wildcards.demo_model}.tpl -n 100000 -d -e {wildcards.demo_model}.est -M -L 40 -q &&\
+              ../../../../../fsc26/fsc26 fsc26 -t {wildcards.demo_model}.tpl -n 100000 -d -e {wildcards.demo_model}.est -M -L 40 -q -c 4 &&\
               cd .. &&\
               mkdir run8 &&\
               cd run8 &&\
               cp ../{wildcards.demo_model}* ./ &&\
-              ../../../../fsc26/fsc26 fsc26 -t {wildcards.demo_model}.tpl -n 100000 -d -e {wildcards.demo_model}.est -M -L 40 -q &&\
+              ../../../../../fsc26/fsc26 fsc26 -t {wildcards.demo_model}.tpl -n 100000 -d -e {wildcards.demo_model}.est -M -L 40 -q -c 4 &&\
               cd .. &&\
               mkdir run9 &&\
               cd run9 &&\
               cp ../{wildcards.demo_model}* ./ &&\
-              ../../../../fsc26/fsc26 fsc26 -t {wildcards.demo_model}.tpl -n 100000 -d -e {wildcards.demo_model}.est -M -L 40 -q &&\
+              ../../../../../fsc26/fsc26 fsc26 -t {wildcards.demo_model}.tpl -n 100000 -d -e {wildcards.demo_model}.est -M -L 40 -q -c 4 &&\
               cd .. &&\
               cd run10 &&\
               cp ../{wildcards.demo_model}* ./ &&\
-              ../../../../fsc26/fsc26 fsc26 -t {wildcards.demo_model}.tpl -n 100000 -d -e {wildcards.demo_model}.est -M -L 40 -q"
+              ../../../../../fsc26/fsc26 fsc26 -t {wildcards.demo_model}.tpl -n 100000 -d -e {wildcards.demo_model}.est -M -L 40 -q -c 4"
 
 # ###############################################################################
 # smc++
@@ -268,35 +268,27 @@ rule run_fsc:
 
 rule ts_to_smc:
     input:rules.simulation.output
-    message: "Here?"
-    output: output_dir + "/{seeds}/{chrms}.treespop1.smc.gz", output_dir + "/{seeds}/{chrms}.treespop2.smc.gz"
+    output: output_dir + "/Intermediate/{seeds}/{chrms}.treespop1.smc.gz", output_dir + "/Intermediate/{seeds}/{chrms}.treespop2.smc.gz"
     run: smc.write_smcpp_file_twopops(input[0], mask_file=mask_file)
 
-# expand(output_dir + "/{seeds}/{chrms}_dadi_joint_sfs.fs", seeds=seed_array, chrms=chrm_list)
-# inputs = expand(output_dir + "/{seeds}/{chrms}_dadi_joint_sfs.fs", seeds=wildcards.seeds, chrms=chrm_list)
 
 rule run_smcpp:
     input:
-        expand(output_dir+ "/{seeds}/{chrms}.treespop1.smc.gz", chrms=chrm_list, seeds=seed_array),
-        expand(output_dir+ "/{seeds}/{chrms}.treespop2.smc.gz", chrms=chrm_list, seeds=seed_array)
-        #rules.ts_to_smc.output
+        expand(output_dir+ "/Intermediate/{seeds}/{chrms}.treespop1.smc.gz", chrms=chrm_list, seeds=seed_array),
+        expand(output_dir+ "/Intermediate/{seeds}/{chrms}.treespop2.smc.gz", chrms=chrm_list, seeds=seed_array)
     output:
-        output_dir + "/{seeds}/model.final.pop1.json", output_dir + "/{seeds}/model.final.pop2.json"
+        output_dir + "/Intermediate/{seeds}/model.final.pop1.json", output_dir + "/Intermediate/{seeds}/model.final.pop2.json"
     threads: 8
     run:
         # need to cd into subdir because smc++ crashes otherwise
         cur = os.getcwd()
-        os.chdir(f"{output_dir}/{wildcards.seeds}")
+        os.chdir(f"{output_dir}/Intermediate/{wildcards.seeds}")
         inputs = expand("{chrms}.treespop1.smc.gz", chrms=chrm_list)
         inputs = " ".join(inputs)
         outputs = expand("model.{chrms}.final.pop1.json", chrms=chrm_list)
         outputs = " ".join(outputs)
         base = f"treespop1.smc.gz"
         cwd = os.getcwd()
-        print ("I am here: " + cwd)
-        print ("Here are the inputs:" + inputs)
-        # os.getcwd()
-        # TODO get the rate here from stdpopsim
         smc.run_smcpp_estimate(inputs, base, mutation_rate=mutation_rate, ncores=threads)
         copyfile("treespop1.smc.gz.final.json/model.final.json", "model.final.pop1.json")
         inputs = expand("{chrms}.treespop2.smc.gz", chrms=chrm_list)
@@ -304,32 +296,27 @@ rule run_smcpp:
         outputs = expand("model.{chrms}.final.pop2.json", chrms=chrm_list)
         outputs = " ".join(inputs)
         base = f"treespop2.smc.gz"
-        #os.getcwd()
-        # TODO get the rate here from stdpopsim
         smc.run_smcpp_estimate(inputs, base, mutation_rate=mutation_rate, ncores=threads)
         copyfile("treespop2.smc.gz.final.json/model.final.json", "model.final.pop2.json")
-        # need to cd out of subdir for snakemake sanity
         os.chdir(cur)
 
 rule smcpp_plot:
     input:
         rules.run_smcpp.output
     output:
-        output_dir + "/{seeds}/trees.smc.gz.final.json.csv", output_dir + "/{seeds}/split/model.final.json", output_dir + "/{seeds}/split/joint.csv"
+        output_dir + "/Intermediate/{seeds}/trees.smc.gz.final.json.csv", output_dir + "/Intermediate/{seeds}/split/model.final.json", output_dir + "/Intermediate/{seeds}/split/joint.csv"
     run:
-        # TODO get the generation time from std source
-        print(input)
         smc.run_smcpp_plot(input[0], input[1], output[0], generation_time=generation_time)
 
 
 def ne_files_smcpp(wildcards):
-    return expand(output_dir + "/{seeds}/split/model.final.json",
+    return expand(output_dir + "/Intermediate/{seeds}/split/model.final.json",
             seeds=seed_array, chrms=chrm_list)
 
 
 rule compound_smcpp:
     input: ne_files_smcpp
-    output: output_dir + "/smcpp_estimated_Ne.png"
+    output: output_dir + "/Results/smcpp_estimated_Ne.png"
     run: plots.plot_compound_smcpp( input, output[0])
 
 
@@ -340,59 +327,55 @@ rule compound_smcpp:
 
 
 rule get_dadi_fsc_output:
-    input: expand(output_dir +  "/{seeds}/dadi_analysis/{demo_model}/model_params_{fit_seeds}.txt", fit_seeds=dadi_seed_array, seeds=seed_array, demo_model=dadi_model),
-           expand(output_dir +  "/{seeds}/fsc_analysis/run10/{demo_model}/{demo_model}.bestlhoods",seeds=seed_array,demo_model=fsc_model)
+    input: expand(output_dir +  "/Intermediate/{seeds}/dadi_analysis/{demo_model}/model_params_{fit_seeds}.txt", fit_seeds=dadi_seed_array, seeds=seed_array, demo_model=dadi_model),
+           expand(output_dir +  "/Intermediate/{seeds}/fsc_analysis/run10/{demo_model}/{demo_model}.bestlhoods",seeds=seed_array,demo_model=fsc_model)
 
-    output: output_dir+"/{seeds}/dadi_analysis/dadi_results_sorted.txt",output_dir+"/{seeds}/fsc_analysis/fsc_results_sorted.txt"
+    output: output_dir+"/Intermediate/{seeds}/dadi_analysis/dadi_results_sorted.txt",output_dir+"/Intermediate/{seeds}/fsc_analysis/fsc_results_sorted.txt"
 
     run:
         for seed in seed_array:
-            dadi_utils.get_dadi_output_IM(output_dir+"/"+str(seed)+ "/dadi_analysis/",dadi_model[0],dadi_seed_array,"dadi_results_sorted.txt")
-            fastsimcoal.get_fsc_output(output_dir+"/"+str(seed)+"/fsc_analysis/",10,"fsc_results_sorted.txt",fsc_model[0])
+            dadi_utils.get_dadi_output_IM(output_dir+"/Intermediate/"+str(seed)+ "/dadi_analysis/",dadi_model[0],dadi_seed_array,"dadi_results_sorted.txt")
+            fastsimcoal.get_fsc_output(output_dir+"/Intermediate/"+str(seed)+"/fsc_analysis/",10,"fsc_results_sorted.txt",fsc_model[0])
 
 rule get_best_dadi_fsc_runs:
-    input: expand(output_dir+"/{seeds}/dadi_analysis/dadi_results_sorted.txt", seeds=seed_array),
-           expand(output_dir+"/{seeds}/fsc_analysis/fsc_results_sorted.txt", seeds=seed_array),
-           expand(output_dir+"/{seeds}/split/joint.csv", seeds=seed_array)
+    input: expand(output_dir+"/Intermediate/{seeds}/dadi_analysis/dadi_results_sorted.txt", seeds=seed_array),
+           expand(output_dir+"/Intermediate/{seeds}/fsc_analysis/fsc_results_sorted.txt", seeds=seed_array),
+           expand(output_dir+"/Intermediate/{seeds}/split/joint.csv", seeds=seed_array)
 
-    output: output_dir + "/best_fsc_runs.txt", output_dir + "/best_dadi_runs.txt", output_dir + "/smcpp_runs.txt"
+    output: output_dir + "/Results/best_fsc_runs.txt", output_dir + "/Results/best_dadi_runs.txt", output_dir + "/Results/smcpp_runs.txt"
 
     run:
-        dadi_utils.get_best_dadi_runs(output_dir, seed_array, output[1])
-        fastsimcoal.get_best_fsc_runs(output_dir, seed_array, output[0])
-        smc.get_smcpp_runs(output_dir, seed_array, output[2])
+        dadi_utils.get_best_dadi_runs(output_dir+"/Intermediate", seed_array, output[1])
+        fastsimcoal.get_best_fsc_runs(output_dir+"/Intermediate", seed_array, output[0])
+        smc.get_smcpp_runs(output_dir+"/Intermediate", seed_array, output[2])
 
 
 rule plot_estimates:
     input: rules.get_best_dadi_fsc_runs.output
 
-    output: output_dir + "/estimates_N_tdiv_dadi_fsc_smcpp.png", output_dir + "/estimates_mig_dadi_fsc.png"
+    output: output_dir + "/Results/estimates_N_tdiv_dadi_fsc_smcpp.png", output_dir + "/Results/estimates_mig_dadi_fsc.png"
 
     run:
-        print("chrom list:" + chrm_list)
 
         simulated_genome_length = 0
-        # for case when only one chromosome is simulated
-        if(isinstance(chrm_list,str)):
-            ts=tskit.load(output_dir+"/"+str(seed_array[0])+"/"+chrm_list+".trees")
-            simulated_genome_length = ts.sequence_length
+        for chr in chrm_list:
+            ts=tskit.load(output_dir+"/Intermediate/"+str(seed_array[0])+"/"+chr+".trees")
+            simulated_genome_length += ts.sequence_length
             if mask_file:
                 mask_table = pd.read_csv(mask_file, sep="\t", header=None)
                 sub = mask_table[mask_table[0] == chr]
                 mask_ints = pd.IntervalIndex.from_arrays(sub[1], sub[2])
                 simulated_genome_length -= np.sum(mask_ints.length)
-
-        # for case when more than one chromosome is simulated
-        else:
-            for chr in chrm_list:
-                ts=tskit.load(output_dir+"/"+str(seed_array[0])+"/"+chr+".trees")
-                simulated_genome_length += ts.sequence_length
-                if mask_file:
-                    mask_table = pd.read_csv(mask_file, sep="\t", header=None)
-                    sub = mask_table[mask_table[0] == chr]
-                    mask_ints = pd.IntervalIndex.from_arrays(sub[1], sub[2])
-                    simulated_genome_length -= np.sum(mask_ints.length)
         if config["species"] == "dromel":
             plots.plot_fsc_dadi_smcpp_results_drosophila_IM(input[1], input[0], input[2], output, simulated_genome_length)
         if config["species"] == "homsap":
             plots.plot_fsc_dadi_smcpp_results_human_IM(input[1], input[0], input[2], output, simulated_genome_length)
+
+
+
+rule clean:
+    shell:
+        f"rm -rf {output_dir}/Intermediate \
+            {output_dir}/Results \
+            .genetic_map_downloaded \
+            .snakemake"

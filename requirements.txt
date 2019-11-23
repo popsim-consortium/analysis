@@ -8,3 +8,5 @@ tqdm
 seaborn
 smcpp
 ldc
+scipy
+attrs==19.1.0

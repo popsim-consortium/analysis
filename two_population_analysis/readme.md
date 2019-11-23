@@ -19,50 +19,29 @@ moment.
 ## Dependencies
 Dadi needs to be installed before running this pipeline: https://bitbucket.org/gutenkunstlab/dadi/wiki/Installation  
 
-To install dadi, first install scipy and numpy to the popsim_env_test conda environment:
-```
-conda install numpy
-conda install scipy
-```
-Now we can install dadi:
 ```
 git clone https://bitbucket.org/gutenkunstlab/dadi
 cd dadi
 python setup.py install
 cd ..
 ```
-To install fastsimcoal2, download compiled version for your platform here: http://cmpg.unibe.ch/software/fastsimcoal2  
-Make sure to download into the two_population directory.
-Next, we unzip the download and rename the fastsimcoal directory:  
+To install fastsimcoal2, download the source code into the two population directory and unzip:
 ```
-unzip fsc26_*.zip
-rm fsc26_*.zip
-mv fsc26_* fsc26
+wget http://cmpg.unibe.ch/software/fastsimcoal2/downloads/fsc26_linux64.zip
+unzip fsc26_linux64.zip && rm fsc26_linux64.zip && mv fsc26_linux64 fsc26
 ```
-For mac and linux users, you will also need to change the permissions on the fsc code:
-```
-cd fsc26/
-chmod +x fsc26
-cd ..
-```
-Finally, mac users may also have to update their gcc if you do not have a recent version installed:
-```
-wget http://prdownloads.sourceforge.net/hpc/gcc-7.1-bin.tar.gz
-gunzip gcc-7.1-bin.tar.gz
-sudo tar -xvf gcc-7.1-bin.tar -C /.
-```
-
 
 ## Workflow
 
-The analysis includes two programs for inferring population size, split times,
+The analysis includes three programs for inferring population size, split times,
 and migration rates from two populations:
-[dadi](https://bitbucket.org/gutenkunstlab/dadi/src/master/), and
-[fastsimcoal2](http://cmpg.unibe.ch/software/fastsimcoal2/).
+[dadi](https://bitbucket.org/gutenkunstlab/dadi/src/master/),
+[fastsimcoal2](http://cmpg.unibe.ch/software/fastsimcoal2/), and
+[smc++](https://github.com/popgenmethods/smcpp).
 
 To run an analysis, create a directory (wherever you want)
-where all results, and intermediate
-files will be stored. Next, create and place a file named `config.json` in it.
+where all results, and intermediate files will be stored.   
+Next, create and place a file named `config.json` in it.
 The json file must contain key : value combos described below. An example
 might look like this:
 
@@ -131,9 +110,9 @@ and jobs will be automatically farmed out to the cluster
 The current final output is are three plots: one comparing population size  
 and divergence time estimates, one comparing migration rate estimates, and  
 one showing the population size trajectories inferred from smc++, i.e.,  
-`homo_sapiens_Gutenkunst/estimates_mig_dadi_fsc.png`  
-`homo_sapiens_Gutenkunst/estimates_N_tdiv_dadi_fsc_smcpp.png`  
-`homo_sapiens_Gutenkunst/smcpp_estimated_Ne.png`
+`homo_sapiens_Gutenkunst_0/Results/estimates_mig_dadi_fsc.png`  
+`homo_sapiens_Gutenkunst_0/Results/estimates_N_tdiv_dadi_fsc_smcpp.png`  
+`homo_sapiens_Gutenkunst_0/Results/smcpp_estimated_Ne.png`
 
 ## Parameter Description
 
