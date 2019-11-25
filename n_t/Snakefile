@@ -137,7 +137,8 @@ rule simulation:
     run:
         contig = species.get_contig(wildcards.chrms, genetic_map=genetic_map_id)
         samples = model.get_samples(*num_samples_per_population)
-        ts = model.simulate(contig, samples, seed=wildcards.seeds)
+        engine = stdpopsim.get_engine("msprime")
+        ts = engine.simulate(model, contig, samples, seed=wildcards.seeds)
         ts.dump(output[0])
 
 
