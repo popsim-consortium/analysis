@@ -3,8 +3,10 @@ scikit-allel
 snakemake
 setuptools
 matplotlib
-pandas
+pandas=0.24.2
 tqdm
 seaborn
 smcpp
 ldc
+scipy
+attrs==19.1.0
