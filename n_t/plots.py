@@ -79,23 +79,35 @@ def plot_all_ne_estimates(sp_infiles, smcpp_infiles, msmc_infiles, outfile,
     num_msmc = set([os.path.basename(infile).split(".")[0] for infile in msmc_infiles])
     num_msmc = sorted([int(x) for x in num_msmc])
     f, ax = plt.subplots(1, 2+len(num_msmc), sharex=True, sharey=True, figsize=(14, 7))
-    for infile in smcpp_infiles:
+
+    outLines = []
+    for i, infile in enumerate(smcpp_infiles):
         nt = pandas.read_csv(infile, usecols=[1, 2], skiprows=0)
         line1, = ax[0].plot(nt['x'], nt['y'], alpha=0.8)
+        for j in range(len(nt["x"])):
+            outLines.append([nt["x"][j],nt["y"][j],"smcpp","r"+str(i+1)])
     ax[0].plot(steps, 1/(2*coal_rate), c="black")
     ax[0].set_title("smc++")
-    for infile in sp_infiles:
+
+    for i, infile in enumerate(sp_infiles):
         nt = pandas.read_csv(infile, sep="\t", skiprows=5)
         line2, = ax[1].plot(nt['year'], nt['Ne_median'], alpha=0.8)
+        for j in range(0,len(nt["year"]),2):
+            outLines.append([nt["year"][j],nt["Ne_median"][j],"sp","r"+str(i+1)])
+
     ax[1].plot(steps, 1/(2*coal_rate), c="black")
     ax[1].set_title("stairwayplot")
     for i, sample_size in enumerate(num_msmc):
+        ct = 0
         for infile in msmc_infiles:
             fn = os.path.basename(infile)
             samp = fn.split(".")[0]
             if(int(samp) == sample_size):
                 nt = pandas.read_csv(infile, usecols=[1, 2], skiprows=0)
                 line3, = ax[2+i].plot(nt['x'], nt['y'], alpha=0.8)
+                for j in range(len(nt["x"])):
+                    outLines.append([nt["x"][j],nt["y"][j],"msmc_"+str(sample_size),"r"+str(ct+1)])
+                ct+=1
         ax[2+i].plot(steps, 1/(2*coal_rate), c="black")
         ax[2+i].set_title(f"msmc, ({sample_size} samples)")
     plt.suptitle(f"{species}, population id {pop_id}", fontsize=16)
@@ -108,6 +120,14 @@ def plot_all_ne_estimates(sp_infiles, smcpp_infiles, msmc_infiles, outfile,
     # maxy, miny = ax[0].get_ylim()
     # ax[0].set_yticks(np.arange(maxy, miny, 10))
     f.savefig(outfile, bbox_inches='tight', alpha=0.8)
+
+    textOUT = outfile.replace(".pdf",".txt")
+    with open(textOUT, "w") as fOUT:
+        fOUT.write("\t".join([str(x) for x in ["x","y","method","rep"]])+"\n")
+        for i in range(len(steps)):
+            fOUT.write("\t".join([str(x) for x in [steps[i],1/(2*coal_rate[i]),"coal","r1"]])+"\n")
+        for i in range(len(outLines)):
+            fOUT.write("\t".join([str(x) for x in outLines[i]])+"\n")
 
 
 def plot_stairwayplot_coalrate(sp_infiles, outfile,
