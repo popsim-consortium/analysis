@@ -39,8 +39,9 @@ np.random.seed(config["seed"])
 
 # This is the number of samples to simulate for within each population
 # for each replicate
+# TODO double check this is up to date with stdpopsim backend 
 num_samples_per_population = config["num_samples_per_population"]
-
+population_id = config["population_id"]
 # Here is a list of sample sizes to run msmc on. 
 # Each element counts as its own analysis
 # so there will be "replicates" runs for each size
@@ -60,7 +61,7 @@ output_dir = os.path.abspath(config["config"])
 species = stdpopsim.get_species(config["species"])
 
 # The specific model you would like to run
-model = species.get_model(config["model"])
+model = species.get_demographic_model(config["model"])
 
 # The genetic map you would like to use.
 # if value None is given default_recombination_rates are
@@ -69,7 +70,7 @@ genetic_map_id = config.get("genetic_map", None)
 
 # The names of all chromosomes to simulate, separated by commas
 # Use "all" to simulate all chromsomes for the genome
-chrm_list = [chrom for chrom in species.genome.chromosomes]
+chrm_list = [chrom.id for chrom in species.genome.chromosomes]
 if "chrY" in chrm_list:
     chrm_list.remove("chrY")
 if(config["chrm_list"] != "all"):
@@ -320,10 +321,7 @@ rule all_plot:
             max_time = species.GenericConstantSize().default_population_size
             max_time *= 4 # 2?
             steps = np.linspace(1, max_time, max_time+1)
-        plots.plot_all_ne_estimates(input.f1, input.f2, input.f3, output[0],
-                    model=model, n_samp=num_sampled_genomes_per_replicate,
-                    generation_time=generation_time, species=config["species"],
-                    pop_id=population_id, steps=steps)
+        plots.plot_all_ne_estimates(input.f1, input.f2, input.f3, output[0], model=model, n_samp=num_samples_per_population[0], generation_time=generation_time, species=config["species"], pop_id=population_id, steps=steps)
 
 
 rule clean:

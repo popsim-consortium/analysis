@@ -5,7 +5,7 @@ Analysis of inference methods on standard population models
 We recommend you start by creating a new `conda` environment for the analysis. 
 
 ```
-conda create -n popsim_env_test python=3.6.8 --yes
+conda create -n popsim_env_test --yes -c conda-forge -c terhorst smcpp python=3.7 
 conda activate popsim_env_test
 ```
 
@@ -22,7 +22,6 @@ Now clone the analysis repo, and install its dependencies
 git clone https://github.com/popgensims/analysis.git
 cd analysis/
 
-for c in terhorst bioconda defaults conda-forge; do conda config --add channels $c; done
 conda install --file requirements.txt --yes
 ````
 
