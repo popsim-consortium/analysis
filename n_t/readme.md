@@ -42,8 +42,8 @@ might look like this:
     "num_sampled_genomes_msmc" : "2,8",
     "num_msmc_iterations" : 20,
     "replicates" : 10,
-    "species" : "homsap",
-    "model" : "ooa_3",
+    "species" : "HomSap",
+    "model" : "OutOfAfrica_3G09",
     "genetic_map" : "HapmapII_GRCh37",
     "chrm_list" : "chr22,chrX",
     "mask_file" : "masks/HapmapII_GRCh37.mask.bed"
@@ -107,9 +107,9 @@ The current final output is a plot comparing stairwayplot and smc++ estimates of
 This sets the seed such that any anaysis configuration
 and run can be replicated exactly. 
 
-`num_sampled_genomes_per_replicate` : `<class 'int'>` 
+`num_sampled_genomes_per_population` : `<class 'list'>` 
 This is the haploid number
-of genomes to simulate for an analysis run.
+of genomes to simulate for an analysis run per population.
 
 `replicates` : `<class 'int'>` The number of replicate simulations to run and 
 analyze. 
