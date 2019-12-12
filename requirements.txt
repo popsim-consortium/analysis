@@ -1,4 +1,4 @@
-msprime=0.7.3
+msprime
 scikit-allel
 snakemake
 setuptools
@@ -6,7 +6,10 @@ matplotlib
 pandas=0.24.2
 tqdm
 seaborn
-smcpp
+pysam
+htslib
 ldc
 scipy
-attrs==19.1.0
+attrs
+cython
+h5py
