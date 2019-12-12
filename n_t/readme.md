@@ -38,6 +38,7 @@ might look like this:
 ```json
 {
     "seed" : 12345,
+    "population_id" : "0",
     "num_samples_per_population" : [20, 0, 0],
     "num_sampled_genomes_msmc" : "2,8",
     "num_msmc_iterations" : 20,
