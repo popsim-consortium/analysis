@@ -67,7 +67,10 @@ def plot_all_ne_estimates(sp_infiles, smcpp_infiles, msmc_infiles, outfile,
 
     ddb = model.get_demography_debugger()
     if steps is None:
-        end_time = ddb.epochs[-2].end_time + 10000
+        if(len(ddb.epochs) == 1):
+            end_time = 100000
+        else:
+            end_time = ddb.epochs[-2].end_time + 10000
         steps = np.linspace(1, end_time, end_time+1)
     num_samples = [0 for _ in range(ddb.num_populations)]
     num_samples[pop_id] = n_samp
