@@ -9,12 +9,9 @@ conda create -n popsim_env_test --yes -c conda-forge -c terhorst smcpp python=3.
 conda activate popsim_env_test
 ```
 
-Next clone and install `stdpopsim`
+Next, install `stdpopsim`
 ```
-git clone https://github.com/popgensims/stdpopsim.git
-cd stdpopsim
-python setup.py install
-cd ..
+python3 -m pip install stdpopsim==0.1.0
 ```
 
 Now clone the analysis repo, and install its dependencies
