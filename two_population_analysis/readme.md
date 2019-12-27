@@ -50,13 +50,12 @@ might look like this:
     "seed" : 12345,
     "num_samples_per_population" : [20, 20, 0],
     "replicates" : 1,
-    "species" : "homsap",
-    "model" : "ooa_3",
+    "species" : "HomSap",
+    "model" : "OutOfAfrica_3G09",
     "genetic_map" : "HapmapII_GRCh37",
     "chrm_list" : "chr22",
     "mask_file" : "masks/HapmapII_GRCh37.mask.bed"
 }
-
 ```
 
 Once you have creates a directory which contains the config file
