@@ -65,18 +65,28 @@ def plot_all_ne_estimates(sp_infiles, smcpp_infiles, msmc_infiles, outfile,
                           model, n_samp, generation_time, species,
                           pop_id=0, steps=None):
 
+    # ax[0].set_yticks(np.arange(maxy, miny, 10))
     ddb = model.get_demography_debugger()
     if steps is None:
         if(len(ddb.epochs) == 1):
             end_time = 100000
         else:
-            end_time = ddb.epochs[-2].end_time + 10000
-        steps = np.linspace(1, end_time, end_time+1)
+            end_time = int(ddb.epochs[-2].end_time) + 10000
+        steps = np.linspace(1, end_time, 1000)
     num_samples = [0 for _ in range(ddb.num_populations)]
     num_samples[pop_id] = n_samp
     coal_rate, P = ddb.coalescence_rate_trajectory(steps=steps,
                                                    num_samples=num_samples,
                                                    double_step_validation=False)
+    mm = [x for x in ddb.demographic_events if x.type == "mass_migration"]
+    census_size = ddb.population_size_trajectory(steps=steps)
+    for m in reversed(mm):
+        if m.proportion == 1.0:
+            n = (steps > m.time)
+            census_size[n, m.source] = census_size[n, m.dest]
+        else:
+            print("Error: census size estimate requires that MassMigration proportion == 1.0")
+            sys.exit(1)
     steps = steps * generation_time
     num_msmc = set([os.path.basename(infile).split(".")[0] for infile in msmc_infiles])
     num_msmc = sorted([int(x) for x in num_msmc])
@@ -120,16 +130,19 @@ def plot_all_ne_estimates(sp_infiles, smcpp_infiles, msmc_infiles, outfile,
     red_patch = mpatches.Patch(color='black', label='Coalescence rate derived Ne')
     ax[0].legend(frameon=False, fontsize=10, handles=[red_patch])
     ax[0].set_ylabel("population size")
-    # maxy, miny = ax[0].get_ylim()
-    # ax[0].set_yticks(np.arange(maxy, miny, 10))
     f.savefig(outfile, bbox_inches='tight', alpha=0.8)
 
-    textOUT = outfile.replace(".pdf", ".txt")
-    with open(textOUT, "w") as fOUT:
+    txtOUT = os.path.join(os.path.dirname(outfile),"_".join([species,model.id,"pop"+str(pop_id),"sizes"])+".txt")
+    with open(txtOUT, "w") as fOUT:
         fOUT.write("\t".join([str(x) for x in ["x", "y", "method", "rep"]]) + "\n")
         for i in range(len(steps)):
             fOUT.write("\t".join([str(x) for x in [steps[i],
-                                                   1/(2*coal_rate[i]), "coal",
+                                                   1/(2*coal_rate[i]),
+                                                   "coal",
+                                                   "r1"]]) + "\n")
+            fOUT.write("\t".join([str(x) for x in [steps[i],
+                                                   census_size[i][pop_id],
+                                                   "census",
                                                    "r1"]]) + "\n")
         for i in range(len(outLines)):
             fOUT.write("\t".join([str(x) for x in outLines[i]])+"\n")
