@@ -64,8 +64,6 @@ def plot_compound_msmc(infiles, outfile):
 def plot_all_ne_estimates(sp_infiles, smcpp_infiles, msmc_infiles, outfile,
                           model, n_samp, generation_time, species,
                           pop_id=0, steps=None):
-
-    # ax[0].set_yticks(np.arange(maxy, miny, 10))
     ddb = model.get_demography_debugger()
     if steps is None:
         if(len(ddb.epochs) == 1):
@@ -73,10 +71,8 @@ def plot_all_ne_estimates(sp_infiles, smcpp_infiles, msmc_infiles, outfile,
         else:
             end_time = int(ddb.epochs[-2].end_time) + 10000
         steps = np.linspace(1, end_time, 1000)
-    num_samples = [0 for _ in range(ddb.num_populations)]
-    num_samples[pop_id] = n_samp
     coal_rate, P = ddb.coalescence_rate_trajectory(steps=steps,
-                                                   num_samples=num_samples,
+                                                   num_samples=n_samp,
                                                    double_step_validation=False)
     mm = [x for x in ddb.demographic_events if x.type == "mass_migration"]
     census_size = ddb.population_size_trajectory(steps=steps)
