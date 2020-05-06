@@ -1,7 +1,7 @@
 # Set this variable to your static gsl libraries
 # GSL = /usr/lib/libgsl.a /usr/lib/libgslcblas.a
 GSLDIR=${CONDA_PREFIX}/lib
-GSL=${GSLDIR}/libgsl.a ${GSLDIR}/libcblas.a
+GSL=${GSLDIR}/libgsl.a ${GSLDIR}/libgslcblas.so
 DC=ldc2
 
 build/msmc : model/*.d powell.d brent.d maximization_step.d expectation_step.d msmc.d branchlength.d logger.d

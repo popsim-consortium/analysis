@@ -325,7 +325,7 @@ rule all_plot:
             max_time = species.GenericConstantSize().default_population_size
             max_time *= 4 # 2?
             steps = np.linspace(1, max_time, max_time+1)
-        plots.plot_all_ne_estimates(input.f1, input.f2, input.f3, output[0], model=model, n_samp=num_samples_per_population[0], generation_time=generation_time, species=config["species"], pop_id=population_id, steps=steps)
+        plots.plot_all_ne_estimates(input.f1, input.f2, input.f3, output[0], model=model, n_samp=num_samples_per_population, generation_time=generation_time, species=config["species"], pop_id=population_id, steps=steps)
 
 
 rule clean:
