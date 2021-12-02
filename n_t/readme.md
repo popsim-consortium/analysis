@@ -45,7 +45,7 @@ might look like this:
     "replicates" : 10,
     "species" : "HomSap",
     "model" : "OutOfAfrica_3G09",
-    "genetic_map" : "HapmapII_GRCh37",
+    "genetic_map" : "HapMapII_GRCh37",
     "chrm_list" : "chr22,chrX",
     "mask_file" : "masks/HapmapII_GRCh37.mask.bed"
 }
